@@ -357,7 +357,7 @@ namespace AssetBundleBrowser
                 m_InspectTab.RefreshBundles();
             };
 
-            AssetBundleModel.Model.DataSource.BuildAssetBundles (buildInfo);
+            AssetBundleBuilder.BuildAssetBundle(buildInfo);
 
             AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
 
@@ -455,8 +455,6 @@ namespace AssetBundleBrowser
             internal CompressOptions m_Compression = CompressOptions.StandardCompression;
             internal string m_OutputPath = string.Empty;
             internal bool m_UseDefaultPath = true;
-            internal List<BuildAsset> m_BuildItemList;
-
         }
     }
 

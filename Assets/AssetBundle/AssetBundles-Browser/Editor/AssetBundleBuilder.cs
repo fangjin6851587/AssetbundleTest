@@ -27,19 +27,27 @@ namespace AssetBundleBrowser
         }
     }
 
+
     public class AssetBundleBuilder
     {
+        //需要打包的资源路径（相对于Assets目录），通常是prefab,lua,及其他数据。（贴图，动画，模型，材质等可以通过依赖自己关联上，不需要添加在该路径里，除非是特殊需要）
+        //注意这里是目录，单独零散的文件，可以新建一个目录，都放在里面打包
+        public static List<string> abResourcePath = new List<string>()
+        {
+		    //"Examples/Prefab",
+		    "AssetBundleSample/Prefabs",
+        };
+
         private static string ASSSETS_STRING = "Assets";
 
         private static readonly List<AssetNode> sLeafNodes = new List<AssetNode>();
         private static readonly Dictionary<string, AssetNode> sAllAssetNodes = new Dictionary<string, AssetNode>();
         private static readonly List<string> sBuildMap = new List<string>();
-        public static List<BuildAsset> sBuildAssets = new List<BuildAsset>();
+        private static ABBuildInfo sABBuildInfo;
 
-        public static void SetAassetBundleNames(ABBuildInfo buildAssets)
+        public static void BuildAssetBundle(ABBuildInfo buildInfo)
         {
-            //sBuildAssets = buildAssets;
-
+            sABBuildInfo = buildInfo;
             sBuildMap.Clear();
             sLeafNodes.Clear();
             sAllAssetNodes.Clear();
@@ -47,18 +55,25 @@ namespace AssetBundleBrowser
             CollectDependcy();
             BuildResourceBuildMap();
             BuildAssetBundleWithBuildMap();
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+        }
+
+        private static void ClearAssetBundleNames()
+        {
+            var assetBundleNames = AssetDatabase.GetAllAssetBundleNames();
+            foreach(string name in assetBundleNames)
+            {
+                AssetDatabase.RemoveAssetBundleName(name, true);
+            }
         }
 
         private static void CollectDependcy()
         {
-            for (int i = 0; i < sBuildAssets.Count; i++)
+            for (int i = 0; i < abResourcePath.Count; i++)
             {
-                string path = Application.dataPath + "/" + sBuildAssets[i].Path;
+                string path = Application.dataPath + "/" + abResourcePath[i];
                 if (!Directory.Exists(path))
                 {
-                    Debug.LogError(string.Format("abResourcePath {0} not exist", sBuildAssets[i].Path));
+                    Debug.LogError(string.Format("abResourcePath {0} not exist", abResourcePath[i]));
                 }
                 else
                 {
@@ -134,7 +149,6 @@ namespace AssetBundleBrowser
                 {
                     if (sLeafNodes[i].Depth == maxDepth)
                     {
-                        //如果叶子节点有多个父节点或者没有父节点,打包该叶子节点
                         if (sLeafNodes[i].Parents.Count != 1)
                         {
                             if (!ShouldIgnoreFile(sLeafNodes[i].Path))
@@ -175,18 +189,37 @@ namespace AssetBundleBrowser
             return sLeafNodes[0].Depth;
         }
 
-        private static void BuildAssetBundleWithBuildMap()
+        private static bool BuildAssetBundleWithBuildMap()
         {
-            AssetBundleBuild[] buildMapArray = new AssetBundleBuild[sBuildMap.Count];
-            for (int i = 0; i < sBuildMap.Count; i++)
+            ClearAssetBundleNames();
+
+            foreach (string path in sBuildMap)
             {
-                buildMapArray[i].assetBundleName = sBuildMap[i].Substring(ASSSETS_STRING.Length + 1);
-                buildMapArray[i].assetNames = new[] { sBuildMap[i] };
+                AssetImporter assetImporter = AssetImporter.GetAtPath(path);
+                assetImporter.SetAssetBundleNameAndVariant(path.Substring(ASSSETS_STRING.Length + 1), string.Empty);
             }
 
-            //if (!Directory.Exists(AssetBundle_Path))
-            //    Directory.CreateDirectory(AssetBundle_Path);
-            //BuildAssetBundles(AssetBundle_Path, buildMapArray, BuildAssetBundleOptions.ChunkBasedCompression | BuildAssetBundleOptions.DeterministicAssetBundle, EditorUserBuildSettings.activeBuildTarget);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            if (!Directory.Exists(sABBuildInfo.outputDirectory))
+                Directory.CreateDirectory(sABBuildInfo.outputDirectory);
+            var buildManifest = BuildPipeline.BuildAssetBundles(sABBuildInfo.outputDirectory, sABBuildInfo.options, sABBuildInfo.buildTarget);
+
+            if (buildManifest == null)
+            {
+                Debug.Log("Error in build");
+                return false;
+            }
+
+            foreach (var assetBundleName in buildManifest.GetAllAssetBundles())
+            {
+                if (sABBuildInfo.onBuild != null)
+                {
+                    sABBuildInfo.onBuild(assetBundleName);
+                }
+            }
+            return true;
         }
 
         private static string GetReleativeToAssets(string fullName)
