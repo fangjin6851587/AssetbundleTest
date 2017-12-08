@@ -29,8 +29,10 @@ namespace AssetBundles
 				return "iOS";
 			case BuildTarget.WebGL:
 				return "WebGL";
-			case BuildTarget.WebPlayer:
+#if !UNITY_5_4_OR_NEWER
+                case BuildTarget.WebPlayer:
 				return "WebPlayer";
+#endif
 			case BuildTarget.StandaloneWindows:
 			case BuildTarget.StandaloneWindows64:
 				return "Windows";
@@ -44,9 +46,9 @@ namespace AssetBundles
 				return null;
 			}
 		}
-	#endif
-	
-		private static string GetPlatformForAssetBundles(RuntimePlatform platform)
+#endif
+
+        private static string GetPlatformForAssetBundles(RuntimePlatform platform)
 		{
 			switch(platform)
 			{
@@ -56,9 +58,11 @@ namespace AssetBundles
 				return "iOS";
 			case RuntimePlatform.WebGLPlayer:
 				return "WebGL";
-			case RuntimePlatform.OSXWebPlayer:
+#if !UNITY_5_4_OR_NEWER
+            case RuntimePlatform.OSXWebPlayer:
 			case RuntimePlatform.WindowsWebPlayer:
 				return "WebPlayer";
+#endif
 			case RuntimePlatform.WindowsPlayer:
 				return "Windows";
 			case RuntimePlatform.OSXPlayer:

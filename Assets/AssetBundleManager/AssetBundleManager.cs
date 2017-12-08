@@ -118,9 +118,11 @@ namespace AssetBundles
 		{
 			if (Application.isEditor)
 				return "file://" +  System.Environment.CurrentDirectory.Replace("\\", "/"); // Use the build output folder directly.
-			else if (Application.isWebPlayer)
+#if !UNITY_5_4_OR_NEWER
+            else if (Application.isWebPlayer)
 				return System.IO.Path.GetDirectoryName(Application.absoluteURL).Replace("\\", "/")+ "/StreamingAssets";
-			else if (Application.isMobilePlatform || Application.isConsolePlatform)
+#endif
+            else if (Application.isMobilePlatform || Application.isConsolePlatform)
 				return Application.streamingAssetsPath;
 			else // For standalone player.
 				return "file://" +  Application.streamingAssetsPath;
@@ -138,11 +140,11 @@ namespace AssetBundles
 	
 		public static void SetDevelopmentAssetBundleServer()
 		{
-			#if UNITY_EDITOR
+#if UNITY_EDITOR
 			// If we're in Editor simulation mode, we don't have to setup a download URL
 			if (SimulateAssetBundleInEditor)
 				return;
-			#endif
+#endif
 			
 			TextAsset urlFile = Resources.Load("AssetBundleServerURL") as TextAsset;
 			string url = (urlFile != null) ? urlFile.text.Trim() : null;
@@ -198,18 +200,18 @@ namespace AssetBundles
 		// Load AssetBundleManifest.
 		static public AssetBundleLoadManifestOperation Initialize (string manifestAssetBundleName)
 		{
-	#if UNITY_EDITOR
+#if UNITY_EDITOR
 			Log (LogType.Info, "Simulation Mode: " + (SimulateAssetBundleInEditor ? "Enabled" : "Disabled"));
-	#endif
+#endif
 	
 			var go = new GameObject("AssetBundleManager", typeof(AssetBundleManager));
 			DontDestroyOnLoad(go);
 		
-	#if UNITY_EDITOR	
+#if UNITY_EDITOR
 			// If we're in Editor simulation mode, we don't need the manifest assetBundle.
 			if (SimulateAssetBundleInEditor)
 				return null;
-	#endif
+#endif
 	
 			LoadAssetBundle(manifestAssetBundleName, true);
 			var operation = new AssetBundleLoadManifestOperation (manifestAssetBundleName, "AssetBundleManifest", typeof(AssetBundleManifest));
@@ -222,11 +224,11 @@ namespace AssetBundles
 		{
 			Log(LogType.Info, "Loading Asset Bundle " + (isLoadingAssetBundleManifest ? "Manifest: " : ": ") + assetBundleName);
 	
-	#if UNITY_EDITOR
+#if UNITY_EDITOR
 			// If we're in Editor simulation mode, we don't have to really load the assetBundle and its dependencies.
 			if (SimulateAssetBundleInEditor)
 				return;
-	#endif
+#endif
 	
 			if (!isLoadingAssetBundleManifest)
 			{
@@ -347,11 +349,11 @@ namespace AssetBundles
 		// Unload assetbundle and its dependencies.
 		static public void UnloadAssetBundle(string assetBundleName)
 		{
-	#if UNITY_EDITOR
+#if UNITY_EDITOR
 			// If we're in Editor simulation mode, we don't have to load the manifest assetBundle.
 			if (SimulateAssetBundleInEditor)
 				return;
-	#endif
+#endif
 	
 			//Debug.Log(m_LoadedAssetBundles.Count + " assetbundle(s) in memory before unloading " + assetBundleName);
 	
@@ -451,7 +453,7 @@ namespace AssetBundles
 			Log(LogType.Info, "Loading " + assetName + " from " + assetBundleName + " bundle");
 	
 			AssetBundleLoadAssetOperation operation = null;
-	#if UNITY_EDITOR
+#if UNITY_EDITOR
 			if (SimulateAssetBundleInEditor)
 			{
 				string[] assetPaths = AssetDatabase.GetAssetPathsFromAssetBundleAndAssetName(assetBundleName, assetName);
@@ -466,7 +468,7 @@ namespace AssetBundles
 				operation = new AssetBundleLoadAssetOperationSimulation (target);
 			}
 			else
-	#endif
+#endif
 			{
 				assetBundleName = RemapVariantName (assetBundleName);
 				LoadAssetBundle (assetBundleName);
@@ -484,13 +486,13 @@ namespace AssetBundles
 			Log(LogType.Info, "Loading " + levelName + " from " + assetBundleName + " bundle");
 	
 			AssetBundleLoadOperation operation = null;
-	#if UNITY_EDITOR
+#if UNITY_EDITOR
 			if (SimulateAssetBundleInEditor)
 			{
 				operation = new AssetBundleLoadLevelSimulationOperation(assetBundleName, levelName, isAdditive);
 			}
 			else
-	#endif
+#endif
 			{
 				assetBundleName = RemapVariantName(assetBundleName);
 				LoadAssetBundle (assetBundleName);
