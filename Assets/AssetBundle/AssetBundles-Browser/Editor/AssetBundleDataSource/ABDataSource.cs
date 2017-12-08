@@ -24,6 +24,7 @@ namespace AssetBundleBrowser.AssetBundleDataSource
         /// Callback for build event.
         /// </summary>
         public Action<string> onBuild;
+        
     }
 
     /// <summary>
