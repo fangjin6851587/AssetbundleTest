@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Linq;
+using AssetBundles;
 
 namespace AssetBundleBrowser
 {
@@ -17,7 +18,8 @@ namespace AssetBundleBrowser
 
         [SerializeField]
         private InspectTabData m_Data;
-        
+
+        private Crypto m_AesCrypto = new Crypto();
 
         private Dictionary<string, List<string> > m_BundleList;
         private InspectBundleTree m_BundleTreeView;
@@ -466,7 +468,20 @@ namespace AssetBundleBrowser
             if (null == bundle)
             {
                 // Load the bundle
-                bundle = AssetBundle.LoadFromFile(path);
+
+                byte[] buffer;
+                using (var fs = new FileStream(path, FileMode.Open))
+                {
+                    buffer = new byte[fs.Length];
+                    fs.Read(buffer, 0, buffer.Length);
+                }
+
+                if (buffer == null)
+                {
+                    return null;
+                }
+
+                bundle = AssetBundle.LoadFromMemory(m_AesCrypto.AesDecryptBytes(buffer));
                 if (null == bundle)
                 {
                     return null;

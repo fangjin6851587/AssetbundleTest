@@ -1,9 +1,11 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 #if UNITY_EDITOR	
 using UnityEditor;
 #endif
 using System.Collections;
 using System.Collections.Generic;
+using Object = UnityEngine.Object;
 
 /*
  	In this demo, we demonstrate:
@@ -54,6 +56,7 @@ namespace AssetBundles
 		static Dictionary<string, string> m_DownloadingErrors = new Dictionary<string, string> ();
 		static List<AssetBundleLoadOperation> m_InProgressOperations = new List<AssetBundleLoadOperation> ();
 		static Dictionary<string, string[]> m_Dependencies = new Dictionary<string, string[]> ();
+        static Crypto m_Crypto = new Crypto();
 	
 		public static LogMode logMode
 		{
@@ -413,18 +416,29 @@ namespace AssetBundles
 				// If downloading succeeds.
 				if(download.isDone)
 				{
-					AssetBundle bundle = download.assetBundle;
-					if (bundle == null)
-					{
-						m_DownloadingErrors.Add(keyValue.Key, string.Format("{0} is not a valid asset bundle.", keyValue.Key));
-						keysToRemove.Add(keyValue.Key);
-						continue;
-					}
-				
-					//Debug.Log("Downloading " + keyValue.Key + " is done at frame " + Time.frameCount);
-					m_LoadedAssetBundles.Add(keyValue.Key, new LoadedAssetBundle(download.assetBundle) );
-					keysToRemove.Add(keyValue.Key);
-				}
+				    AssetBundle bundle;
+                    try
+				    {
+				        byte[] encryptedData = download.bytes;
+				        byte[] decryptedData = m_Crypto.AesDecryptBytes(encryptedData);
+				        bundle = AssetBundle.LoadFromMemory(decryptedData);
+                    }
+				    catch (Exception)
+                    {
+				        bundle = null;
+				    }
+
+				    if (bundle == null)
+				    {
+				        m_DownloadingErrors.Add(keyValue.Key, string.Format("{0} is not a valid asset bundle.", keyValue.Key));
+				        keysToRemove.Add(keyValue.Key);
+				        continue;
+				    }
+
+				    //Debug.Log("Downloading " + keyValue.Key + " is done at frame " + Time.frameCount);
+				    m_LoadedAssetBundles.Add(keyValue.Key, new LoadedAssetBundle(download.assetBundle));
+				    keysToRemove.Add(keyValue.Key);
+                }
 			}
 	
 			// Remove the finished WWWs.

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using AssetBundleBrowser.AssetBundleDataSource;
 using AssetBundles;
+using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 
@@ -115,6 +116,7 @@ namespace AssetBundleBrowser
                 return;
             }
 
+            EncryptAssetBundle(buildManifest);
             GenerateAssetBundleUpdateInfo(buildManifest);
 
             foreach (string assetBundleName in buildManifest.GetAllAssetBundles())
@@ -255,8 +257,25 @@ namespace AssetBundleBrowser
                     MarjorVersion = CURRENT_VERSION_MAJOR
                 };
             versionInfo.Save(mAbBuildInfo.outputDirectory);
-            var assetBundleUpdateInfo = new AssetBundleUpdateInfo(versionInfo.MinorVersion, manifest);
+            var assetBundleUpdateInfo = new AssetBundleUpdateInfo(versionInfo.MinorVersion, mAbBuildInfo.outputDirectory, manifest);
             assetBundleUpdateInfo.Save(mAbBuildInfo.outputDirectory);
+        }
+
+        private void EncryptAssetBundle(AssetBundleManifest manifest)
+        {
+            var crypto = new Crypto();
+            foreach (var assetBundle in manifest.GetAllAssetBundles())
+            {
+                using (var fs = new FileStream(Path.Combine(mAbBuildInfo.outputDirectory, assetBundle), FileMode.Open, FileAccess.ReadWrite))
+                {
+                    var buffer = new byte[fs.Length];
+                    fs.Read(buffer, 0, buffer.Length);
+                    buffer = crypto.AesEncryptBytes(buffer);
+                    fs.Seek(0, SeekOrigin.Begin);
+                    fs.Write(buffer, 0, buffer.Length);
+                    fs.SetLength(buffer.Length);
+                }
+            }
         }
 
         private void GetDependcyRecursive(string path, AssetNode parentNode)

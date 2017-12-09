@@ -1,39 +1,10 @@
 ManifestFileVersion: 0
-CRC: 307461304
+CRC: 1257010084
 AssetBundleManifest:
   AssetBundleInfos:
     Info_0:
-      Name: skins
+      Name: assetbundletest/2.mat
       Dependencies: {}
     Info_1:
-      Name: assetbundlesample/sampleassets/tanks/materials/yellowdark.mat
+      Name: assetbundletest/1.mat
       Dependencies: {}
-    Info_2:
-      Name: assetbundlesample/sampleassets/tanks/materials/yellowlight.mat
-      Dependencies: {}
-    Info_3:
-      Name: assetbundlesample/sampleassets/tanks/models/tank.fbx
-      Dependencies:
-        Dependency_0: skins
-    Info_4:
-      Name: assetbundlesample/sampleassets/tanks/models/tree.fbx
-      Dependencies: {}
-    Info_5:
-      Name: assetbundlesample/sampleassets/tanks/models/cactus.fbx
-      Dependencies: {}
-    Info_6:
-      Name: assetbundlesample/sampleassets/tanks/models/column01.fbx
-      Dependencies:
-        Dependency_0: assetbundlesample/sampleassets/tanks/materials/yellowdark.mat
-    Info_7:
-      Name: assetbundlesample/sampleassets/tanks/models/column02.fbx
-      Dependencies:
-        Dependency_0: assetbundlesample/sampleassets/tanks/materials/yellowdark.mat
-    Info_8:
-      Name: assetbundlesample/sampleassets/tanks/models/dunes01.fbx
-      Dependencies:
-        Dependency_0: assetbundlesample/sampleassets/tanks/materials/yellowlight.mat
-    Info_9:
-      Name: assetbundlesample/sampleassets/tanks/models/terrain.fbx
-      Dependencies:
-        Dependency_0: assetbundlesample/sampleassets/tanks/materials/yellowlight.mat
