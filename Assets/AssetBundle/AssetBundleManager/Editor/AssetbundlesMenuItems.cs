@@ -20,11 +20,11 @@ namespace AssetBundles
 			Menu.SetChecked(kSimulationMode, AssetBundleManager.SimulateAssetBundleInEditor);
 			return true;
 		}
-		
-//		[MenuItem ("Assets/AssetBundles/Build AssetBundles")]
-//		static public void BuildAssetBundles ()
-//		{
-//			BuildScript.BuildAssetBundles();
-//		}
-	}
+
+        [MenuItem("Assets/AssetBundles/Build AssetBundles")]
+        static public void BuildAssetBundles()
+        {
+            BuildScript.BuildAssetBundles();
+        }
+    }
 }

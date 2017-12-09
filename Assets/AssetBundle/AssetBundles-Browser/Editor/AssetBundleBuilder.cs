@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using AssetBundleBrowser.AssetBundleDataSource;
+using AssetBundles;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,88 +11,206 @@ namespace AssetBundleBrowser
     public class AssetNode
     {
         public readonly List<AssetNode> Parents = new List<AssetNode>();
-        public string Path;
         public int Depth;
+        public string Path;
     }
-
-    [System.Serializable]
-    public class BuildAsset
-    {
-        public string Path { get; private set; }
-
-        public bool CollectDependency { get; private set; }
-
-        public BuildAsset(string path, bool collectDependency)
-        {
-            Path = path;
-            CollectDependency = collectDependency;
-        }
-    }
-
 
     public class AssetBundleBuilder
     {
-        //需要打包的资源路径（相对于Assets目录），通常是prefab,lua,及其他数据。（贴图，动画，模型，材质等可以通过依赖自己关联上，不需要添加在该路径里，除非是特殊需要）
-        //注意这里是目录，单独零散的文件，可以新建一个目录，都放在里面打包
-        public static List<string> abResourcePath = new List<string>()
+        private static readonly string ASSSETS_STRING = "Assets";
+        private static readonly int CURRENT_VERSION_MAJOR = 1;
+        private readonly Dictionary<string, AssetNode> mAllAssetNodes = new Dictionary<string, AssetNode>();
+        private readonly List<string> mBuildMap = new List<string>();
+
+        private readonly List<AssetNode> mLeafNodes = new List<AssetNode>();
+        private ABBuildInfo mAbBuildInfo;
+
+        private List<BuildFolder> mDependciesFolder;
+        private List<BuildFolder> mSingleFolder;
+
+        public void BuildAssetBundle(ABBuildInfo buildInfo)
         {
-		    //"Examples/Prefab",
-		    "AssetBundleSample/Prefabs",
-        };
+            mAbBuildInfo = buildInfo;
 
-        private static string ASSSETS_STRING = "Assets";
+            mDependciesFolder = mAbBuildInfo.buildFolderList.FindAll(bf => !bf.SingleAssetBundle);
+            mSingleFolder = mAbBuildInfo.buildFolderList.FindAll(bf => bf.SingleAssetBundle);
 
-        private static readonly List<AssetNode> sLeafNodes = new List<AssetNode>();
-        private static readonly Dictionary<string, AssetNode> sAllAssetNodes = new Dictionary<string, AssetNode>();
-        private static readonly List<string> sBuildMap = new List<string>();
-        private static ABBuildInfo sABBuildInfo;
+            mBuildMap.Clear();
+            mLeafNodes.Clear();
+            mAllAssetNodes.Clear();
 
-        public static void BuildAssetBundle(ABBuildInfo buildInfo)
-        {
-            sABBuildInfo = buildInfo;
-            sBuildMap.Clear();
-            sLeafNodes.Clear();
-            sAllAssetNodes.Clear();
-
+            CollectSingle();
             CollectDependcy();
             BuildResourceBuildMap();
             BuildAssetBundleWithBuildMap();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
-        private static void ClearAssetBundleNames()
+        public void SetAssetBundleNames(List<BuildFolder> buildFolderList)
+        {
+            mDependciesFolder = buildFolderList.FindAll(bf => !bf.SingleAssetBundle);
+            mSingleFolder = buildFolderList.FindAll(bf => bf.SingleAssetBundle);
+
+            mBuildMap.Clear();
+            mLeafNodes.Clear();
+            mAllAssetNodes.Clear();
+
+            CollectSingle();
+            CollectDependcy();
+            BuildResourceBuildMap();
+            SetAssetBundleNames();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        private void SetAssetBundleNames()
+        {
+            if (mBuildMap.Count == 0)
+            {
+                return;
+            }
+
+            foreach (string path in mBuildMap)
+            {
+                var assetImporter = AssetImporter.GetAtPath(path);
+                var singleBuildFolder = GetSingleBuildFolder(path);
+                if (singleBuildFolder != null)
+                {
+                    assetImporter.SetAssetBundleNameAndVariant(
+                        string.IsNullOrEmpty(singleBuildFolder.AssetBundleName)
+                            ? singleBuildFolder.Path.Substring(ASSSETS_STRING.Length + 1)
+                            : singleBuildFolder.AssetBundleName, string.Empty);
+                }
+                else
+                {
+                    assetImporter.SetAssetBundleNameAndVariant(path.Substring(ASSSETS_STRING.Length + 1), string.Empty);
+                }
+            }
+        }
+
+        private void BuildAssetBundleWithBuildMap()
+        {
+            ClearAssetBundleNames();
+
+            if (mBuildMap.Count == 0)
+            {
+                return;
+            }
+
+            SetAssetBundleNames();
+
+            if (!Directory.Exists(mAbBuildInfo.outputDirectory))
+            {
+                Directory.CreateDirectory(mAbBuildInfo.outputDirectory);
+            }
+            var buildManifest = BuildPipeline.BuildAssetBundles(mAbBuildInfo.outputDirectory, mAbBuildInfo.options,
+                mAbBuildInfo.buildTarget);
+
+            if (buildManifest == null)
+            {
+                Debug.Log("Error in build");
+                return;
+            }
+
+            GenerateAssetBundleUpdateInfo(buildManifest);
+
+            foreach (string assetBundleName in buildManifest.GetAllAssetBundles())
+            {
+                if (mAbBuildInfo.onBuild != null)
+                {
+                    mAbBuildInfo.onBuild(assetBundleName);
+                }
+            }
+        }
+
+        private void BuildResourceBuildMap()
+        {
+            int maxDepth = GetMaxDepthOfLeafNodes();
+            while (mLeafNodes.Count > 0)
+            {
+                var curDepthNodesList = new List<AssetNode>();
+                for (int i = 0; i < mLeafNodes.Count; i++)
+                {
+                    if (mLeafNodes[i].Depth == maxDepth)
+                    {
+                        if (mLeafNodes[i].Parents.Count != 1)
+                        {
+                            if (!ShouldIgnoreFile(mLeafNodes[i].Path))
+                            {
+                                mBuildMap.Add(mLeafNodes[i].Path);
+                            }
+                        }
+                        curDepthNodesList.Add(mLeafNodes[i]);
+                    }
+                }
+                for (int i = 0; i < curDepthNodesList.Count; i++)
+                {
+                    mLeafNodes.Remove(curDepthNodesList[i]);
+                    foreach (var node in curDepthNodesList[i].Parents)
+                    {
+                        if (!mLeafNodes.Contains(node))
+                        {
+                            mLeafNodes.Add(node);
+                        }
+                    }
+                }
+
+                maxDepth -= 1;
+            }
+        }
+
+        private bool CheckFileSuffixNeedIgnore(string fileName)
+        {
+            if (fileName.EndsWith(".meta") || fileName.EndsWith(".DS_Store") || fileName.EndsWith(".cs"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private void ClearAssetBundleNames()
         {
             var assetBundleNames = AssetDatabase.GetAllAssetBundleNames();
-            foreach(string name in assetBundleNames)
+            foreach (string name in assetBundleNames)
             {
                 AssetDatabase.RemoveAssetBundleName(name, true);
             }
         }
 
-        private static void CollectDependcy()
+
+        private void CollectDependcy()
         {
-            for (int i = 0; i < abResourcePath.Count; i++)
+            for (int i = 0; i < mDependciesFolder.Count; i++)
             {
-                string path = Application.dataPath + "/" + abResourcePath[i];
+                string path = Application.dataPath + "/" +
+                              mDependciesFolder[i].Path.Substring(ASSSETS_STRING.Length + 1);
                 if (!Directory.Exists(path))
                 {
-                    Debug.LogError(string.Format("abResourcePath {0} not exist", abResourcePath[i]));
+                    Debug.LogError(string.Format("abResourcePath {0} not exist", mDependciesFolder[i].Path));
                 }
                 else
                 {
-                    DirectoryInfo dir = new DirectoryInfo(path);
-                    FileInfo[] files = dir.GetFiles("*", SearchOption.AllDirectories);
+                    var dir = new DirectoryInfo(path);
+                    var files = dir.GetFiles("*", SearchOption.AllDirectories);
                     for (int j = 0; j < files.Length; j++)
                     {
                         if (CheckFileSuffixNeedIgnore(files[j].Name))
+                        {
                             continue;
+                        }
+
                         string fileRelativePath = GetReleativeToAssets(files[j].FullName);
                         AssetNode root;
-                        sAllAssetNodes.TryGetValue(fileRelativePath, out root);
+                        mAllAssetNodes.TryGetValue(fileRelativePath, out root);
                         if (root == null)
                         {
                             root = new AssetNode();
                             root.Path = fileRelativePath;
-                            sAllAssetNodes[root.Path] = root;
+                            mAllAssetNodes[root.Path] = root;
                             GetDependcyRecursive(fileRelativePath, root);
                         }
                     }
@@ -99,20 +219,65 @@ namespace AssetBundleBrowser
             //PrintDependcy();
         }
 
-        private static void GetDependcyRecursive(string path, AssetNode parentNode)
+        private void CollectSingle()
         {
-            string[] dependcy = AssetDatabase.GetDependencies(path, false);
+            for (int i = 0; i < mSingleFolder.Count; i++)
+            {
+                string path = Application.dataPath + "/" + mSingleFolder[i].Path.Substring(ASSSETS_STRING.Length + 1);
+                if (!Directory.Exists(path))
+                {
+                    Debug.LogError(string.Format("abResourcePath {0} not exist", mSingleFolder[i].Path));
+                }
+                else
+                {
+                    var dir = new DirectoryInfo(path);
+                    var files = dir.GetFiles("*", SearchOption.AllDirectories);
+                    for (int j = 0; j < files.Length; j++)
+                    {
+                        if (CheckFileSuffixNeedIgnore(files[j].Name))
+                        {
+                            continue;
+                        }
+
+                        string fileRelativePath = GetReleativeToAssets(files[j].FullName);
+                        mBuildMap.Add(fileRelativePath);
+                    }
+                }
+            }
+        }
+
+        private void GenerateAssetBundleUpdateInfo(AssetBundleManifest manifest)
+        {
+            var versionInfo =
+                new AssetBundleVersionInfo
+                {
+                    MinorVersion = int.Parse(DateTime.Now.ToString("yyMMddHHmm")),
+                    MarjorVersion = CURRENT_VERSION_MAJOR
+                };
+            versionInfo.Save(mAbBuildInfo.outputDirectory);
+            var assetBundleUpdateInfo = new AssetBundleUpdateInfo(versionInfo.MinorVersion, manifest);
+            assetBundleUpdateInfo.Save(mAbBuildInfo.outputDirectory);
+        }
+
+        private void GetDependcyRecursive(string path, AssetNode parentNode)
+        {
+            if (GetSingleBuildFolder(path) != null)
+            {
+                return;
+            }
+
+            var dependcy = AssetDatabase.GetDependencies(path, false);
             for (int i = 0; i < dependcy.Length; i++)
             {
                 AssetNode node;
-                sAllAssetNodes.TryGetValue(dependcy[i], out node);
+                mAllAssetNodes.TryGetValue(dependcy[i], out node);
                 if (node == null)
                 {
                     node = new AssetNode();
                     node.Path = dependcy[i];
                     node.Depth = parentNode.Depth + 1;
                     node.Parents.Add(parentNode);
-                    sAllAssetNodes[node.Path] = node;
+                    mAllAssetNodes[node.Path] = node;
                     GetDependcyRecursive(dependcy[i], node);
                 }
                 else
@@ -126,116 +291,51 @@ namespace AssetBundleBrowser
                         node.Depth = parentNode.Depth + 1;
                         GetDependcyRecursive(dependcy[i], node);
                     }
-
                 }
                 //Debug.Log("dependcy path is " +dependcy[i] + " parent is " + parentNode.path);
             }
+
             if (dependcy.Length == 0)
             {
-                if (!sLeafNodes.Contains(parentNode))
+                if (!mLeafNodes.Contains(parentNode))
                 {
-                    sLeafNodes.Add(parentNode);
+                    mLeafNodes.Add(parentNode);
                 }
             }
         }
 
-        private static void BuildResourceBuildMap()
+        private int GetMaxDepthOfLeafNodes()
         {
-            int maxDepth = GetMaxDepthOfLeafNodes();
-            while (sLeafNodes.Count > 0)
+            if (mLeafNodes.Count == 0)
             {
-                List<AssetNode> curDepthNodesList = new List<AssetNode>();
-                for (int i = 0; i < sLeafNodes.Count; i++)
-                {
-                    if (sLeafNodes[i].Depth == maxDepth)
-                    {
-                        if (sLeafNodes[i].Parents.Count != 1)
-                        {
-                            if (!ShouldIgnoreFile(sLeafNodes[i].Path))
-                            {
-                                sBuildMap.Add(sLeafNodes[i].Path);
-                            }
-                        }
-                        curDepthNodesList.Add(sLeafNodes[i]);
-                    }
-                }
-                for (int i = 0; i < curDepthNodesList.Count; i++)
-                {
-                    sLeafNodes.Remove(curDepthNodesList[i]);
-                    foreach (AssetNode node in curDepthNodesList[i].Parents)
-                    {
-                        if (!sLeafNodes.Contains(node))
-                        {
-                            sLeafNodes.Add(node);
-                        }
-                    }
-                }
-                maxDepth -= 1;
-            }
-        }
-
-        private static bool ShouldIgnoreFile(string path)
-        {
-            if (path.EndsWith(".cs"))
-                return true;
-            return false;
-        }
-
-        private static int GetMaxDepthOfLeafNodes()
-        {
-            if (sLeafNodes.Count == 0)
                 return 0;
-            sLeafNodes.Sort((x, y) => y.Depth - x.Depth);
-            return sLeafNodes[0].Depth;
+            }
+
+            mLeafNodes.Sort((x, y) => y.Depth - x.Depth);
+            return mLeafNodes[0].Depth;
         }
 
-        private static bool BuildAssetBundleWithBuildMap()
-        {
-            ClearAssetBundleNames();
-
-            foreach (string path in sBuildMap)
-            {
-                AssetImporter assetImporter = AssetImporter.GetAtPath(path);
-                assetImporter.SetAssetBundleNameAndVariant(path.Substring(ASSSETS_STRING.Length + 1), string.Empty);
-            }
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            if (!Directory.Exists(sABBuildInfo.outputDirectory))
-                Directory.CreateDirectory(sABBuildInfo.outputDirectory);
-            var buildManifest = BuildPipeline.BuildAssetBundles(sABBuildInfo.outputDirectory, sABBuildInfo.options, sABBuildInfo.buildTarget);
-
-            if (buildManifest == null)
-            {
-                Debug.Log("Error in build");
-                return false;
-            }
-
-            foreach (var assetBundleName in buildManifest.GetAllAssetBundles())
-            {
-                if (sABBuildInfo.onBuild != null)
-                {
-                    sABBuildInfo.onBuild(assetBundleName);
-                }
-            }
-            return true;
-        }
-
-        private static string GetReleativeToAssets(string fullName)
+        private string GetReleativeToAssets(string fullName)
         {
             string fileRelativePath = fullName.Substring(Application.dataPath.Length - ASSSETS_STRING.Length);
-            fileRelativePath = fileRelativePath.Replace(@"\\", "/");
+            fileRelativePath = fileRelativePath.Replace("\\", "/");
             return fileRelativePath;
         }
 
-        private static bool CheckFileSuffixNeedIgnore(string fileName)
+        private BuildFolder GetSingleBuildFolder(string path)
         {
-            if (fileName.EndsWith(".meta") || fileName.EndsWith(".DS_Store") || fileName.EndsWith(".cs"))
+            path = path.Replace("\\", "/");
+            return mSingleFolder.Find(sf => path.StartsWith(sf.Path));
+        }
+
+        private bool ShouldIgnoreFile(string path)
+        {
+            if (path.EndsWith(".cs"))
+            {
                 return true;
+            }
+
             return false;
         }
     }
 }
-
-

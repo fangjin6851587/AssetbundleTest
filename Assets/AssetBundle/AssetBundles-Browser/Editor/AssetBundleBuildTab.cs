@@ -1,10 +1,12 @@
+using System;
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-
+using System.Threading;
 using AssetBundleBrowser.AssetBundleDataSource;
+using Object = UnityEngine.Object;
 
 namespace AssetBundleBrowser
 {
@@ -194,6 +196,44 @@ namespace AssetBundleBrowser
                 }
             }
 
+            if (GUILayout.Button("Add Current Selected Folder", GUILayout.MaxWidth(200)))
+            {
+                AddSelectedFolder();
+            }
+            if (m_UserData.m_BuildFolderList != null && m_UserData.m_BuildFolderList.Count > 0)
+            {
+                EditorGUILayout.Space();
+                GUILayout.BeginVertical();
+                int buildFolderIndex = 1;
+                int removeIndex = -1;
+                foreach (var buildFolder in m_UserData.m_BuildFolderList)
+                {
+                    GUILayout.BeginHorizontal();
+                    EditorGUILayout.TextField(buildFolderIndex.ToString(), buildFolder.Path);
+                    buildFolder.SingleAssetBundle = GUILayout.Toggle(buildFolder.SingleAssetBundle, "Single AssetBundle");
+                    if (buildFolder.SingleAssetBundle)
+                    {
+                        if (string.IsNullOrEmpty(buildFolder.AssetBundleName))
+                        {
+                            buildFolder.AssetBundleName = buildFolder.Path.Substring(buildFolder.Path.LastIndexOf("/", StringComparison.Ordinal) + 1);
+                        }
+                        buildFolder.AssetBundleName = EditorGUILayout.TextField("AssetBundle Name", buildFolder.AssetBundleName);
+                    }
+                    if (GUILayout.Button("-", GUILayout.MaxWidth(30)))
+                    {
+                        removeIndex = buildFolderIndex - 1;
+                    }
+                    buildFolderIndex++;
+                    GUILayout.EndHorizontal();
+                }
+
+                if (removeIndex >= 0)
+                {
+                    m_UserData.m_BuildFolderList.RemoveAt(removeIndex);
+                }
+
+                GUILayout.EndVertical();
+            }
 
             ////output path
             using (new EditorGUI.DisabledScope (!AssetBundleModel.Model.DataSource.CanSpecifyBuildOutputDirectory)) {
@@ -281,6 +321,13 @@ namespace AssetBundleBrowser
                 }
             }
 
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Set AssetBundle Name"))
+            {
+                EditorApplication.delayCall += ExecuteSetAssetBundleName;
+            }
+
+
             // build.
             EditorGUILayout.Space();
             if (GUILayout.Button("Build") )
@@ -291,6 +338,40 @@ namespace AssetBundleBrowser
             EditorGUILayout.EndScrollView();
         }
 
+        private void ExecuteSetAssetBundleName()
+        {
+            AssetBundleBuilder builder = new AssetBundleBuilder();
+            builder.SetAssetBundleNames(m_UserData.m_BuildFolderList);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+        }
+
+        private void AddSelectedFolder()
+        {
+            Object[] selectedAsset = Selection.GetFiltered(typeof(Object), SelectionMode.DeepAssets);
+            string dirPath = string.Empty;
+            foreach (Object o in selectedAsset)
+            {
+                string path = AssetDatabase.GetAssetPath(o);
+                if (Directory.Exists(path) && (string.IsNullOrEmpty(dirPath) || dirPath.Length > path.Length))
+                {
+                    dirPath = path;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(dirPath))
+            {
+                if (m_UserData.m_BuildFolderList == null)
+                {
+                    m_UserData.m_BuildFolderList = new List<BuildFolder>();
+                }
+                if (m_UserData.m_BuildFolderList.FindIndex(bf => bf.Path == dirPath) < 0)
+                {
+                    var buildFolder = new BuildFolder();
+                    buildFolder.Path = dirPath;
+                    m_UserData.m_BuildFolderList.Add(buildFolder);
+                }
+            }
+        }
         private void ExecuteBuild()
         {
             if (AssetBundleModel.Model.DataSource.CanSpecifyBuildOutputDirectory) {
@@ -314,11 +395,11 @@ namespace AssetBundleBrowser
                         try
                         {
                             if (Directory.Exists(m_UserData.m_OutputPath))
-                                Directory.Delete(m_UserData.m_OutputPath, true);
+                                DeleteFilesAndFoldersRecursively(m_UserData.m_OutputPath);
 
                             if (m_CopyToStreaming.state)
                             if (Directory.Exists(m_streamingPath))
-                                Directory.Delete(m_streamingPath, true);
+                                DeleteFilesAndFoldersRecursively(m_streamingPath);
                         }
                         catch (System.Exception e)
                         {
@@ -344,11 +425,12 @@ namespace AssetBundleBrowser
                 }
             }
 
-            ABBuildInfo buildInfo = new ABBuildInfo();
+            AssetBundleDataSource.ABBuildInfo buildInfo = new AssetBundleDataSource.ABBuildInfo();
 
             buildInfo.outputDirectory = m_UserData.m_OutputPath;
             buildInfo.options = opt;
             buildInfo.buildTarget = (BuildTarget)m_UserData.m_BuildTarget;
+            buildInfo.buildFolderList = m_UserData.m_BuildFolderList;
             buildInfo.onBuild = (assetBundleName) =>
             {
                 if (m_InspectTab == null)
@@ -357,12 +439,29 @@ namespace AssetBundleBrowser
                 m_InspectTab.RefreshBundles();
             };
 
-            AssetBundleBuilder.BuildAssetBundle(buildInfo);
+            AssetBundleBuilder builder = new AssetBundleBuilder();
+            builder.BuildAssetBundle(buildInfo);
 
             AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
 
             if(m_CopyToStreaming.state)
                 DirectoryCopy(m_UserData.m_OutputPath, m_streamingPath);
+        }
+
+        public static void DeleteFilesAndFoldersRecursively(string targetDir)
+        {
+            foreach (string file in Directory.GetFiles(targetDir))
+            {
+                File.Delete(file);
+            }
+
+            foreach (string subDir in Directory.GetDirectories(targetDir))
+            {
+                DeleteFilesAndFoldersRecursively(subDir);
+            }
+
+            Thread.Sleep(1); // This makes the difference between whether it works or not. Sleep(0) is not enough.
+            Directory.Delete(targetDir);
         }
 
         private static void DirectoryCopy(string sourceDirName, string destDirName)
@@ -455,6 +554,7 @@ namespace AssetBundleBrowser
             internal CompressOptions m_Compression = CompressOptions.StandardCompression;
             internal string m_OutputPath = string.Empty;
             internal bool m_UseDefaultPath = true;
+            public List<BuildFolder> m_BuildFolderList = new List<BuildFolder>();
         }
     }
 

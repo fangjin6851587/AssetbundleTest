@@ -1,8 +1,18 @@
 ﻿using UnityEditor;
 using System;
+using System.Collections.Generic;
 
 namespace AssetBundleBrowser.AssetBundleDataSource
 {
+    [Serializable]
+    public class BuildFolder
+    {
+        public string Path;
+        public string AssetBundleName;
+        public bool SingleAssetBundle;
+    }
+
+
     /// <summary>
     /// Build Info struct used by ABDataSource to pass needed build data around.
     /// </summary>
@@ -24,20 +34,22 @@ namespace AssetBundleBrowser.AssetBundleDataSource
         /// Callback for build event.
         /// </summary>
         public Action<string> onBuild;
-        
+
+        public List<BuildFolder> buildFolderList;
+
     }
 
-    /// <summary>
-    /// Interface class used by browser. It is expected to contain all information needed to display predicted bundle layout.
-    ///  Any class deriving from this interface AND imlementing CreateDataSources() will be picked up by the browser automatically
-    ///  and displayed in an in-tool dropdown.  By default, that dropdown is hidden if the browser detects no external data sources.
-    ///  To turn it on, right click on tab header "AssetBUndles" and enable "Custom Sources"
-    ///  
-    /// Must implement CreateDataSources() to be picked up by the browser.
-    ///   public static List<ABDataSource> CreateDataSources();
-    /// 
-    /// </summary>
-    public partial interface ABDataSource
+/// <summary>
+/// Interface class used by browser. It is expected to contain all information needed to display predicted bundle layout.
+///  Any class deriving from this interface AND imlementing CreateDataSources() will be picked up by the browser automatically
+///  and displayed in an in-tool dropdown.  By default, that dropdown is hidden if the browser detects no external data sources.
+///  To turn it on, right click on tab header "AssetBUndles" and enable "Custom Sources"
+///  
+/// Must implement CreateDataSources() to be picked up by the browser.
+///   public static List<ABDataSource> CreateDataSources();
+/// 
+/// </summary>
+public partial interface ABDataSource
     {
         //// all derived classes must implement the following interface in order to be picked up by the browser.
         //public static List<ABDataSource> CreateDataSources();

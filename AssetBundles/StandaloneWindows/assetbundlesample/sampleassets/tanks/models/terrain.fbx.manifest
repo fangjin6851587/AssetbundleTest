@@ -1,0 +1,27 @@
+ManifestFileVersion: 0
+CRC: 3859153729
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 122a525fd0cb6247fb17a1376d89641c
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 38726c06769622599c93cfb08b008b8f
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 4
+  Script: {instanceID: 0}
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 23
+  Script: {instanceID: 0}
+- Class: 33
+  Script: {instanceID: 0}
+- Class: 43
+  Script: {instanceID: 0}
+Assets:
+- Assets/AssetBundleSample/SampleAssets/Tanks/Models/Terrain.fbx
+Dependencies:
+- D:/Project/AssetbundleTest/AssetBundles/StandaloneWindows/assetbundlesample/sampleassets/tanks/materials/yellowlight.mat

@@ -1,47 +1,39 @@
 ManifestFileVersion: 0
-CRC: 1406565374
+CRC: 307461304
 AssetBundleManifest:
   AssetBundleInfos:
     Info_0:
-      Name: scene-bundle
-      Dependencies:
-        Dependency_0: material-bundle
+      Name: skins
+      Dependencies: {}
     Info_1:
-      Name: variants/myassets.hd
+      Name: assetbundlesample/sampleassets/tanks/materials/yellowdark.mat
       Dependencies: {}
     Info_2:
-      Name: variants/variant-scene
-      Dependencies:
-        Dependency_0: variants/myassets.hd
-    Info_3:
-      Name: variants/myassets.sd
+      Name: assetbundlesample/sampleassets/tanks/materials/yellowlight.mat
       Dependencies: {}
-    Info_4:
-      Name: tanks-scene-bundle
+    Info_3:
+      Name: assetbundlesample/sampleassets/tanks/models/tank.fbx
       Dependencies:
-        Dependency_0: tanks-albedo.normal-hd
+        Dependency_0: skins
+    Info_4:
+      Name: assetbundlesample/sampleassets/tanks/models/tree.fbx
+      Dependencies: {}
     Info_5:
-      Name: tanks-albedo.desert-hd
+      Name: assetbundlesample/sampleassets/tanks/models/cactus.fbx
       Dependencies: {}
     Info_6:
-      Name: tanks-albedo.normal-sd
-      Dependencies: {}
-    Info_7:
-      Name: tanks-albedo.normal-hd
-      Dependencies: {}
-    Info_8:
-      Name: tanks-albedo.desert-sd
-      Dependencies: {}
-    Info_9:
-      Name: banner.english
-      Dependencies: {}
-    Info_10:
-      Name: banner.danish
-      Dependencies: {}
-    Info_11:
-      Name: cube-bundle
+      Name: assetbundlesample/sampleassets/tanks/models/column01.fbx
       Dependencies:
-        Dependency_0: material-bundle
-    Info_12:
-      Name: material-bundle
-      Dependencies: {}
+        Dependency_0: assetbundlesample/sampleassets/tanks/materials/yellowdark.mat
+    Info_7:
+      Name: assetbundlesample/sampleassets/tanks/models/column02.fbx
+      Dependencies:
+        Dependency_0: assetbundlesample/sampleassets/tanks/materials/yellowdark.mat
+    Info_8:
+      Name: assetbundlesample/sampleassets/tanks/models/dunes01.fbx
+      Dependencies:
+        Dependency_0: assetbundlesample/sampleassets/tanks/materials/yellowlight.mat
+    Info_9:
+      Name: assetbundlesample/sampleassets/tanks/models/terrain.fbx
+      Dependencies:
+        Dependency_0: assetbundlesample/sampleassets/tanks/materials/yellowlight.mat
