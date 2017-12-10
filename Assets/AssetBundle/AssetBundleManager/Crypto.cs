@@ -9,18 +9,11 @@ namespace AssetBundles
         private const string PASS_KEY = "43EC94013158CCDDF4E5CC99044CD2D7";
         private const string SALT_KEY = "2057E908296E519C76FF01DBFAD30B67";
 
-        private readonly byte[] mSaltBytes;
-
-        public Crypto()
-        {
-            mSaltBytes = Encoding.Default.GetBytes(SALT_KEY);
-        }
-
-        public byte[] AesDecryptBytes(byte[] cryptBytes)
+        public static byte[] AesDecryptBytes(byte[] cryptBytes)
         {
             byte[] clearBytes;
 
-            var key = new Rfc2898DeriveBytes(PASS_KEY, mSaltBytes);
+            var key = new Rfc2898DeriveBytes(PASS_KEY, Encoding.Default.GetBytes(SALT_KEY));
 
             using (Aes aes = new AesManaged())
             {
@@ -42,11 +35,11 @@ namespace AssetBundles
             return clearBytes;
         }
 
-        public byte[] AesEncryptBytes(byte[] clearBytes)
+        public static byte[] AesEncryptBytes(byte[] clearBytes)
         {
             byte[] encryptedBytes;
 
-            var key = new Rfc2898DeriveBytes(PASS_KEY, mSaltBytes);
+            var key = new Rfc2898DeriveBytes(PASS_KEY, Encoding.Default.GetBytes(SALT_KEY));
 
             // create an AES object
             using (Aes aes = new AesManaged())

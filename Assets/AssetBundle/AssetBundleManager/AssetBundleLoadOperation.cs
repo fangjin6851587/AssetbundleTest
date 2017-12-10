@@ -216,6 +216,4 @@ namespace AssetBundles
 				return true;
 		}
 	}
-	
-	
 }

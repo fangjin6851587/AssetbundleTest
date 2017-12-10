@@ -9,7 +9,6 @@ namespace AssetBundles
 {
     public interface IProtoData
     {
-        string GetName();
         void Load(string path);
         void Save(string path);
     }
@@ -43,10 +42,11 @@ namespace AssetBundles
     [Serializable]
     public class AssetBundleUpdateInfo : IProtoData
     {
-        private const string FILE_NAME = "update.byte";
+        public const string FILE_NAME = "update.byte";
         public int CurrentVersion;
         public Dictionary<string, AssetBundleInfo> PendingList;
         public int TargetVersion;
+        public string[] AllAssetBundlesWithVariant;
 
         public AssetBundleUpdateInfo()
         {
@@ -58,6 +58,7 @@ namespace AssetBundles
             CurrentVersion = version;
             TargetVersion = version;
             var allAssetBundles = manifest.GetAllAssetBundles();
+            AllAssetBundlesWithVariant = manifest.GetAllAssetBundlesWithVariant();
             PendingList = new Dictionary<string, AssetBundleInfo>();
             foreach (string assetBundle in allAssetBundles)
             {
@@ -67,7 +68,7 @@ namespace AssetBundles
 
         public void Load(string path)
         {
-            path = Path.Combine(path, GetName());
+            path = Path.Combine(path, FILE_NAME);
             if (!File.Exists(path))
             {
                 return;
@@ -77,44 +78,43 @@ namespace AssetBundles
             {
                 var buffer = new byte[fs.Length];
                 fs.Read(buffer, 0, buffer.Length);
-                var crypto = new Crypto();
-                buffer = crypto.AesDecryptBytes(buffer);
-                using (var m = new MemoryStream(buffer))
-                {
-                    var bf = new BinaryFormatter();
-                    var updateInfo = bf.Deserialize(m) as AssetBundleUpdateInfo;
-                    if (updateInfo == null)
-                    {
-                        return;
-                    }
+                Load(buffer);
+            }
+        }
 
-                    CurrentVersion = updateInfo.CurrentVersion;
-                    TargetVersion = updateInfo.TargetVersion;
-                    PendingList = updateInfo.PendingList;
+        public void Load(byte[] buffer)
+        {
+            buffer = Crypto.AesDecryptBytes(buffer);
+            using (var m = new MemoryStream(buffer))
+            {
+                var bf = new BinaryFormatter();
+                var updateInfo = bf.Deserialize(m) as AssetBundleUpdateInfo;
+                if (updateInfo == null)
+                {
+                    return;
                 }
+
+                CurrentVersion = updateInfo.CurrentVersion;
+                TargetVersion = updateInfo.TargetVersion;
+                PendingList = updateInfo.PendingList;
+                AllAssetBundlesWithVariant = updateInfo.AllAssetBundlesWithVariant;
             }
         }
 
         public void Save(string path)
         {
-            path = Path.Combine(path, GetName());
+            path = Path.Combine(path, FILE_NAME);
             using (var fs = new FileStream(path, FileMode.Create))
             {
                 using (var m = new MemoryStream())
                 {
                     var bf = new BinaryFormatter();
                     bf.Serialize(m, this);
-                    var crypto = new Crypto();
-                    var buffer = crypto.AesEncryptBytes(m.GetBuffer());
+                    var buffer = Crypto.AesEncryptBytes(m.GetBuffer());
                     fs.Write(buffer, 0, buffer.Length);
                     fs.SetLength(buffer.Length);
                 }
             }
-        }
-
-        public string GetName()
-        {
-            return FILE_NAME;
         }
 
         public AssetBundleInfo GetAssetBundleInfo(string assetBundleName)
@@ -133,13 +133,13 @@ namespace AssetBundles
     [Serializable]
     public class AssetBundleVersionInfo : IProtoData
     {
-        private const string FILE_NAME = "version.byte";
+        public const string FILE_NAME = "version.byte";
         public int MarjorVersion;
         public int MinorVersion;
 
         public void Load(string path)
         {
-            path = Path.Combine(path, GetName());
+            path = Path.Combine(path, FILE_NAME);
             if (!File.Exists(path))
             {
                 return;
@@ -149,8 +149,7 @@ namespace AssetBundles
             {
                 var buffer = new byte[fs.Length];
                 fs.Read(buffer, 0, buffer.Length);
-                var crypto = new Crypto();
-                buffer = crypto.AesDecryptBytes(buffer);
+                buffer = Crypto.AesDecryptBytes(buffer);
                 using (var m = new MemoryStream(buffer))
                 {
                     var bf = new BinaryFormatter();
@@ -166,24 +165,18 @@ namespace AssetBundles
 
         public void Save(string path)
         {
-            path = Path.Combine(path, GetName());
+            path = Path.Combine(path, FILE_NAME);
             using (var fs = new FileStream(path, FileMode.Create))
             {
                 using (var m = new MemoryStream())
                 {
                     var bf = new BinaryFormatter();
                     bf.Serialize(m, this);
-                    var crypto = new Crypto();
-                    var buffer = crypto.AesEncryptBytes(m.GetBuffer());
+                    var buffer = Crypto.AesEncryptBytes(m.GetBuffer());
                     fs.Write(buffer, 0, buffer.Length);
                     fs.SetLength(buffer.Length);
                 }
             }
-        }
-
-        public string GetName()
-        {
-            return FILE_NAME;
         }
     }
 }

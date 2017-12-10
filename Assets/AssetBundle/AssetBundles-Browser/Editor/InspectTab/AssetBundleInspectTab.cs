@@ -1,3 +1,4 @@
+using System;
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.IMGUI.Controls;
@@ -19,8 +20,6 @@ namespace AssetBundleBrowser
         [SerializeField]
         private InspectTabData m_Data;
 
-        private Crypto m_AesCrypto = new Crypto();
-
         private Dictionary<string, List<string> > m_BundleList;
         private InspectBundleTree m_BundleTreeView;
         [SerializeField]
@@ -29,6 +28,8 @@ namespace AssetBundleBrowser
         internal Editor m_Editor = null;
 
         private SingleBundleInspector m_SingleInspector;
+        private InspectVersion m_VersionInspector;
+        private InspectUpdate m_UpdateInfoInspector;
 
         /// <summary>
         /// Collection of loaded asset bundle records indexed by bundle name
@@ -60,6 +61,8 @@ namespace AssetBundleBrowser
             m_BundleList = new Dictionary<string, List<string>>();
             m_SingleInspector = new SingleBundleInspector();
             m_loadedAssetBundles = new Dictionary<string, AssetBundleRecord>();
+            m_VersionInspector = new InspectVersion();
+            m_UpdateInfoInspector = new InspectUpdate();
         }
 
         internal void OnEnable(Rect pos, EditorWindow parent)
@@ -152,6 +155,8 @@ namespace AssetBundleBrowser
                 int halfWidth = (int)(m_Position.width / 2.0f);
                 m_BundleTreeView.OnGUI(new Rect(m_Position.x, m_Position.y + 30, halfWidth, m_Position.height - 30));
                 m_SingleInspector.OnGUI(new Rect(m_Position.x + halfWidth, m_Position.y + 30, halfWidth, m_Position.height - 30));
+                m_VersionInspector.OnGUI(new Rect(m_Position.x + halfWidth, m_Position.y + 30, halfWidth, m_Position.height - 30));
+                m_UpdateInfoInspector.OnGUI(new Rect(m_Position.x + halfWidth, m_Position.y + 30, halfWidth, m_Position.height - 30));
             }
         }
 
@@ -214,6 +219,8 @@ namespace AssetBundleBrowser
         private void ClearData()
         {
             m_SingleInspector.SetBundle(null);
+            m_VersionInspector.SetVersion(null);
+            m_UpdateInfoInspector.SetUpdateInfo(null);
 
             if (null != m_loadedAssetBundles)
             {
@@ -319,6 +326,10 @@ namespace AssetBundleBrowser
 
         internal void SetBundleItem(IList<InspectTreeItem> selected)
         {
+            m_VersionInspector.SetVersion(null);
+            m_UpdateInfoInspector.SetUpdateInfo(null);
+            m_SingleInspector.SetBundle(null);
+
             //m_SelectedBundleTreeItems = selected;
             if (selected == null || selected.Count == 0 || selected[0] == null)
             {
@@ -326,8 +337,23 @@ namespace AssetBundleBrowser
             }
             else if(selected.Count == 1)
             {
-                AssetBundle bundle = LoadBundle(selected[0].bundlePath);
-                m_SingleInspector.SetBundle(bundle, selected[0].bundlePath, m_Data, this);
+                if (selected[0].displayName.EndsWith(AssetBundleVersionInfo.FILE_NAME))
+                {
+                    AssetBundleVersionInfo version = new AssetBundleVersionInfo();
+                    version.Load(selected[0].bundlePath.Replace(AssetBundleVersionInfo.FILE_NAME, ""));
+                    m_VersionInspector.SetVersion(version);
+                }
+                else if (selected[0].displayName.EndsWith(AssetBundleUpdateInfo.FILE_NAME))
+                {
+                    AssetBundleUpdateInfo updateInfo = new AssetBundleUpdateInfo();
+                    updateInfo.Load(selected[0].bundlePath.Replace(AssetBundleUpdateInfo.FILE_NAME, ""));
+                    m_UpdateInfoInspector.SetUpdateInfo(updateInfo);
+                }
+                else
+                {
+                    AssetBundle bundle = LoadBundle(selected[0].bundlePath);
+                    m_SingleInspector.SetBundle(bundle, selected[0].bundlePath, m_Data, this);
+                }
             }
             else
             {
@@ -476,12 +502,17 @@ namespace AssetBundleBrowser
                     fs.Read(buffer, 0, buffer.Length);
                 }
 
-                if (buffer == null)
+
+                try
                 {
-                    return null;
+                    bundle = AssetBundle.LoadFromMemory(Crypto.AesDecryptBytes(buffer));
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError(e.Message);
+                    bundle = null;
                 }
 
-                bundle = AssetBundle.LoadFromMemory(m_AesCrypto.AesDecryptBytes(buffer));
                 if (null == bundle)
                 {
                     return null;

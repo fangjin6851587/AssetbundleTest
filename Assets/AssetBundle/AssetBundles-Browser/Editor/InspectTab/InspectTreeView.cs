@@ -109,8 +109,8 @@ namespace AssetBundleBrowser
         protected override void SelectionChanged(IList<int> selectedIds)
 		{
 			base.SelectionChanged(selectedIds);
-			
-			if (selectedIds.Count > 0)
+
+            if (selectedIds.Count > 0)
 			{
                 m_InspectTab.SetBundleItem(FindRows(selectedIds).Select(tvi => tvi as InspectTreeItem).ToList());
 				//m_InspectTab.SetBundleItem(FindItem(selectedIds[0], rootItem) as InspectTreeItem);

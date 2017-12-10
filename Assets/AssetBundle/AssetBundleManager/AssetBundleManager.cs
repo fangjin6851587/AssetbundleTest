@@ -56,7 +56,6 @@ namespace AssetBundles
 		static Dictionary<string, string> m_DownloadingErrors = new Dictionary<string, string> ();
 		static List<AssetBundleLoadOperation> m_InProgressOperations = new List<AssetBundleLoadOperation> ();
 		static Dictionary<string, string[]> m_Dependencies = new Dictionary<string, string[]> ();
-        static Crypto m_Crypto = new Crypto();
 	
 		public static LogMode logMode
 		{
@@ -83,8 +82,8 @@ namespace AssetBundles
 		{
 			set {m_AssetBundleManifest = value; }
 		}
-	
-		private static void Log(LogType logType, string text)
+
+        private static void Log(LogType logType, string text)
 		{
 			if (logType == LogType.Error)
 				Debug.LogError("[AssetBundleManager] " + text);
@@ -198,10 +197,9 @@ namespace AssetBundles
 		{
 			return Initialize(Utility.GetPlatformName());
 		}
-			
-	
-		// Load AssetBundleManifest.
-		static public AssetBundleLoadManifestOperation Initialize (string manifestAssetBundleName)
+
+        // Load AssetBundleManifest.
+        static public AssetBundleLoadManifestOperation Initialize (string manifestAssetBundleName)
 		{
 #if UNITY_EDITOR
 			Log (LogType.Info, "Simulation Mode: " + (SimulateAssetBundleInEditor ? "Enabled" : "Disabled"));
@@ -316,10 +314,10 @@ namespace AssetBundles
 			string url = m_BaseDownloadingURL + assetBundleName;
 		
 			// For manifest assetbundle, always download it as we don't have hash for it.
-			if (isLoadingAssetBundleManifest)
+			//if (isLoadingAssetBundleManifest)
 				download = new WWW(url);
-			else
-				download = WWW.LoadFromCacheOrDownload(url, m_AssetBundleManifest.GetAssetBundleHash(assetBundleName), 0); 
+			//else
+			//	download = WWW.LoadFromCacheOrDownload(url, m_AssetBundleManifest.GetAssetBundleHash(assetBundleName), 0); 
 	
 			m_DownloadingWWWs.Add(assetBundleName, download);
 	
@@ -417,14 +415,14 @@ namespace AssetBundles
 				if(download.isDone)
 				{
 				    AssetBundle bundle;
-                    try
+				    try
 				    {
 				        byte[] encryptedData = download.bytes;
-				        byte[] decryptedData = m_Crypto.AesDecryptBytes(encryptedData);
+				        byte[] decryptedData = Crypto.AesDecryptBytes(encryptedData);
 				        bundle = AssetBundle.LoadFromMemory(decryptedData);
                     }
 				    catch (Exception)
-                    {
+				    {
 				        bundle = null;
 				    }
 
@@ -436,8 +434,8 @@ namespace AssetBundles
 				    }
 
 				    //Debug.Log("Downloading " + keyValue.Key + " is done at frame " + Time.frameCount);
-				    m_LoadedAssetBundles.Add(keyValue.Key, new LoadedAssetBundle(download.assetBundle));
-				    keysToRemove.Add(keyValue.Key);
+				    m_LoadedAssetBundles.Add(keyValue.Key, new LoadedAssetBundle(bundle));
+                    keysToRemove.Add(keyValue.Key);
                 }
 			}
 	

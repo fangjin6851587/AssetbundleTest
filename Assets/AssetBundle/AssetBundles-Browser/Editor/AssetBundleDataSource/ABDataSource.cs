@@ -10,6 +10,7 @@ namespace AssetBundleBrowser.AssetBundleDataSource
         public string Path;
         public string AssetBundleName;
         public bool SingleAssetBundle;
+        public string VariantType;
     }
 
 
@@ -36,7 +37,6 @@ namespace AssetBundleBrowser.AssetBundleDataSource
         public Action<string> onBuild;
 
         public List<BuildFolder> buildFolderList;
-
     }
 
 /// <summary>

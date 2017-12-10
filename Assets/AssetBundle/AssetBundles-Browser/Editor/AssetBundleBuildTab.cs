@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using AssetBundleBrowser.AssetBundleDataSource;
+using AssetBundles;
 using Object = UnityEngine.Object;
 
 namespace AssetBundleBrowser
@@ -13,8 +14,6 @@ namespace AssetBundleBrowser
     [System.Serializable]
     internal class AssetBundleBuildTab
     {
-        const string k_BuildPrefPrefix = "ABBBuild:";
-
         private string m_streamingPath = "Assets/StreamingAssets";
 
         [SerializeField]
@@ -209,7 +208,7 @@ namespace AssetBundleBrowser
                 foreach (var buildFolder in m_UserData.m_BuildFolderList)
                 {
                     GUILayout.BeginHorizontal();
-                    EditorGUILayout.TextField(buildFolderIndex.ToString(), buildFolder.Path);
+                    EditorGUILayout.LabelField(buildFolderIndex.ToString(), buildFolder.Path);
                     buildFolder.SingleAssetBundle = GUILayout.Toggle(buildFolder.SingleAssetBundle, "Single AssetBundle");
                     if (buildFolder.SingleAssetBundle)
                     {
@@ -219,6 +218,7 @@ namespace AssetBundleBrowser
                         }
                         buildFolder.AssetBundleName = EditorGUILayout.TextField("AssetBundle Name", buildFolder.AssetBundleName);
                     }
+                    buildFolder.VariantType = EditorGUILayout.TextField("AssetBundle Variant", buildFolder.VariantType);
                     if (GUILayout.Button("-", GUILayout.MaxWidth(30)))
                     {
                         removeIndex = buildFolderIndex - 1;
@@ -341,7 +341,9 @@ namespace AssetBundleBrowser
         private void ExecuteSetAssetBundleName()
         {
             AssetBundleBuilder builder = new AssetBundleBuilder();
-            builder.SetAssetBundleNames(m_UserData.m_BuildFolderList);
+            ABBuildInfo abBuildInfo = new ABBuildInfo();
+            abBuildInfo.buildFolderList = m_UserData.m_BuildFolderList;
+            builder.SetAssetBundleNames(abBuildInfo);
             AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
         }
 
@@ -483,6 +485,18 @@ namespace AssetBundleBrowser
                 string newFilePath = Path.Combine(Path.GetDirectoryName(filePath).Replace(sourceDirName, destDirName),
                     Path.GetFileName(filePath));
 
+                //using (var fs = new FileStream(filePath, FileMode.Open))
+                //{
+                //    byte[] buffer = new byte[fs.Length];
+                //    fs.Read(buffer, 0, buffer.Length);
+                //    buffer = Crypto.AesDecryptBytes(buffer);
+                //    using (var newFs = new FileStream(newFilePath, FileMode.Create))
+                //    {
+                //        newFs.Write(buffer, 0, buffer.Length);
+                //        newFs.SetLength(buffer.Length);
+                //    }
+                //}
+
                 File.Copy(filePath, newFilePath, true);
             }
         }
@@ -554,7 +568,7 @@ namespace AssetBundleBrowser
             internal CompressOptions m_Compression = CompressOptions.StandardCompression;
             internal string m_OutputPath = string.Empty;
             internal bool m_UseDefaultPath = true;
-            public List<BuildFolder> m_BuildFolderList = new List<BuildFolder>();
+            internal List<BuildFolder> m_BuildFolderList = new List<BuildFolder>();
         }
     }
 

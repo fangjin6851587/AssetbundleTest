@@ -5,7 +5,7 @@ using AssetBundles;
 
 public class LoadVariants : MonoBehaviour
 {
-	const string variantSceneAssetBundle = "variants/variant-scene";
+	const string variantSceneAssetBundle = "assetbundlesample/sampleassets/variants/variantscene.unity";
 	const string variantSceneName = "VariantScene";
 	private string[] activeVariants;
 	private bool bundlesLoaded;				// used to remove the loading buttons
@@ -73,9 +73,9 @@ public class LoadVariants : MonoBehaviour
 		// Or customize the URL based on your deployment or configuration
 		//AssetBundleManager.SetSourceAssetBundleURL("http://www.MyWebsite/MyAssetBundles");
 		#endif
-		
-		// Initialize AssetBundleManifest which loads the AssetBundleManifest object.
-		var request = AssetBundleManager.Initialize();
+	    AssetBundleManager.SetSourceAssetBundleDirectory("/Assets/StreamingAssets/");
+        // Initialize AssetBundleManifest which loads the AssetBundleManifest object.
+        var request = AssetBundleManager.Initialize();
 		
 		if (request != null)
 			yield return StartCoroutine(request);

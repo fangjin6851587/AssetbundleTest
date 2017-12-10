@@ -29,15 +29,17 @@ public class LoadAssets : MonoBehaviour
 		// 	Another approach would be to make this configurable in the standalone player.)
 		#if DEVELOPMENT_BUILD || UNITY_EDITOR
 		AssetBundleManager.SetDevelopmentAssetBundleServer ();
-		#else
+	    AssetBundleManager.SetSourceAssetBundleDirectory("/Assets/StreamingAssets/");
+
+#else
 		// Use the following code if AssetBundles are embedded in the project for example via StreamingAssets folder etc:
 		AssetBundleManager.SetSourceAssetBundleURL(Application.dataPath + "/");
 		// Or customize the URL based on your deployment or configuration
 		//AssetBundleManager.SetSourceAssetBundleURL("http://www.MyWebsite/MyAssetBundles");
-		#endif
+#endif
 
-		// Initialize AssetBundleManifest which loads the AssetBundleManifest object.
-		var request = AssetBundleManager.Initialize();
+        // Initialize AssetBundleManifest which loads the AssetBundleManifest object.
+        var request = AssetBundleManager.Initialize();
 		if (request != null)
 			yield return StartCoroutine(request);
 	}
