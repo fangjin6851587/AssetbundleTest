@@ -37,6 +37,8 @@ namespace AssetBundleBrowser.AssetBundleDataSource
         public Action<string> onBuild;
 
         public List<BuildFolder> buildFolderList;
+
+        public bool isEncrypt;
     }
 
 /// <summary>

@@ -9,8 +9,8 @@ namespace AssetBundles
 {
     public interface IProtoData
     {
-        void Load(string path);
-        void Save(string path);
+        void Load(string path, bool isEncrypt);
+        void Save(string path, bool isEncrypt);
     }
 
     [Serializable]
@@ -66,7 +66,7 @@ namespace AssetBundles
             }
         }
 
-        public void Load(string path)
+        public void Load(string path, bool isEncrypt)
         {
             path = Path.Combine(path, FILE_NAME);
             if (!File.Exists(path))
@@ -78,13 +78,16 @@ namespace AssetBundles
             {
                 var buffer = new byte[fs.Length];
                 fs.Read(buffer, 0, buffer.Length);
-                Load(buffer);
+                Load(buffer, isEncrypt);
             }
         }
 
-        public void Load(byte[] buffer)
+        public void Load(byte[] buffer, bool isEncrypt)
         {
-            buffer = Crypto.AesDecryptBytes(buffer);
+            if (isEncrypt)
+            {
+                buffer = Crypto.AesDecryptBytes(buffer);
+            }
             using (var m = new MemoryStream(buffer))
             {
                 var bf = new BinaryFormatter();
@@ -101,18 +104,25 @@ namespace AssetBundles
             }
         }
 
-        public void Save(string path)
+        public void Save(string path, bool isEncrypt)
         {
             path = Path.Combine(path, FILE_NAME);
             using (var fs = new FileStream(path, FileMode.Create))
             {
-                using (var m = new MemoryStream())
+                var bf = new BinaryFormatter();
+                if (isEncrypt)
                 {
-                    var bf = new BinaryFormatter();
-                    bf.Serialize(m, this);
-                    var buffer = Crypto.AesEncryptBytes(m.GetBuffer());
-                    fs.Write(buffer, 0, buffer.Length);
-                    fs.SetLength(buffer.Length);
+                    using (var m = new MemoryStream())
+                    {
+                        bf.Serialize(m, this);
+                        var buffer = Crypto.AesEncryptBytes(m.GetBuffer());
+                        fs.Write(buffer, 0, buffer.Length);
+                        fs.SetLength(buffer.Length);
+                    }
+                }
+                else
+                {
+                    bf.Serialize(fs, this);
                 }
             }
         }
@@ -137,7 +147,7 @@ namespace AssetBundles
         public int MarjorVersion;
         public int MinorVersion;
 
-        public void Load(string path)
+        public void Load(string path, bool isEncrypt)
         {
             path = Path.Combine(path, FILE_NAME);
             if (!File.Exists(path))
@@ -147,13 +157,26 @@ namespace AssetBundles
 
             using (var fs = new FileStream(path, FileMode.Open))
             {
-                var buffer = new byte[fs.Length];
-                fs.Read(buffer, 0, buffer.Length);
-                buffer = Crypto.AesDecryptBytes(buffer);
-                using (var m = new MemoryStream(buffer))
+                if (isEncrypt)
+                {
+                    var buffer = new byte[fs.Length];
+                    fs.Read(buffer, 0, buffer.Length);
+                    buffer = Crypto.AesDecryptBytes(buffer);
+                    using (var m = new MemoryStream(buffer))
+                    {
+                        var bf = new BinaryFormatter();
+                        var bundleVersionInfo = bf.Deserialize(m) as AssetBundleVersionInfo;
+                        if (bundleVersionInfo != null)
+                        {
+                            MarjorVersion = bundleVersionInfo.MarjorVersion;
+                            MinorVersion = bundleVersionInfo.MinorVersion;
+                        }
+                    }
+                }
+                else
                 {
                     var bf = new BinaryFormatter();
-                    var bundleVersionInfo = bf.Deserialize(m) as AssetBundleVersionInfo;
+                    var bundleVersionInfo = bf.Deserialize(fs) as AssetBundleVersionInfo;
                     if (bundleVersionInfo != null)
                     {
                         MarjorVersion = bundleVersionInfo.MarjorVersion;
@@ -163,18 +186,25 @@ namespace AssetBundles
             }
         }
 
-        public void Save(string path)
+        public void Save(string path, bool isEncrypt)
         {
             path = Path.Combine(path, FILE_NAME);
             using (var fs = new FileStream(path, FileMode.Create))
             {
-                using (var m = new MemoryStream())
+                var bf = new BinaryFormatter();
+                if (isEncrypt)
                 {
-                    var bf = new BinaryFormatter();
-                    bf.Serialize(m, this);
-                    var buffer = Crypto.AesEncryptBytes(m.GetBuffer());
-                    fs.Write(buffer, 0, buffer.Length);
-                    fs.SetLength(buffer.Length);
+                    using (var m = new MemoryStream())
+                    {
+                        bf.Serialize(m, this);
+                        var buffer = Crypto.AesEncryptBytes(m.GetBuffer());
+                        fs.Write(buffer, 0, buffer.Length);
+                        fs.SetLength(buffer.Length);
+                    }
+                }
+                else
+                {
+                    bf.Serialize(fs, this);
                 }
             }
         }

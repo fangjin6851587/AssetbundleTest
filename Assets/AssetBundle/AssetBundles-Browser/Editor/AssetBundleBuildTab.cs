@@ -53,6 +53,7 @@ namespace AssetBundleBrowser
         List<ToggleData> m_ToggleData;
         ToggleData m_ForceRebuild;
         ToggleData m_CopyToStreaming;
+        ToggleData m_Encrypt;
         GUIContent m_TargetContent;
         GUIContent m_CompressionContent;
         internal enum CompressOptions
@@ -158,6 +159,11 @@ namespace AssetBundleBrowser
                 false,
                 "Copy to StreamingAssets",
                 "After build completes, will copy all build content to " + m_streamingPath + " for use in stand-alone player.",
+                m_UserData.m_OnToggles);
+            m_Encrypt = new ToggleData(
+                false,
+                "Encrpyt AssetBundle",
+                "Encrypt AssetBundle with AES, you can change the key in the Crypto.cs file.",
                 m_UserData.m_OnToggles);
 
             m_TargetContent = new GUIContent("Build Target", "Choose target platform to build for.");
@@ -280,6 +286,18 @@ namespace AssetBundleBrowser
                     else
                         m_UserData.m_OnToggles.Remove(m_CopyToStreaming.content.text);
                     m_CopyToStreaming.state = newState;
+                }
+
+                newState = GUILayout.Toggle(
+                    m_Encrypt.state,
+                    m_Encrypt.content);
+                if (newState != m_Encrypt.state)
+                {
+                    if (newState)
+                        m_UserData.m_OnToggles.Add(m_Encrypt.content.text);
+                    else
+                        m_UserData.m_OnToggles.Remove(m_Encrypt.content.text);
+                    m_Encrypt.state = newState;
                 }
             }
 
@@ -433,6 +451,7 @@ namespace AssetBundleBrowser
             buildInfo.options = opt;
             buildInfo.buildTarget = (BuildTarget)m_UserData.m_BuildTarget;
             buildInfo.buildFolderList = m_UserData.m_BuildFolderList;
+            buildInfo.isEncrypt = m_Encrypt.state;
             buildInfo.onBuild = (assetBundleName) =>
             {
                 if (m_InspectTab == null)

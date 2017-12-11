@@ -84,24 +84,28 @@ namespace AssetBundleBrowser
                     continue;
                 }
 
+                string assetBundleName = path.Substring(ASSSETS_STRING.Length + 1);
+                int extensionIndex = path.LastIndexOf(".");
+                assetBundleName = path.Substring(0, extensionIndex);
                 var buildFolder = GetBuildFolder(path);
+
                 if (buildFolder != null)
                 {
                     if (buildFolder.SingleAssetBundle)
                     {
                         assetImporter.SetAssetBundleNameAndVariant(
                             string.IsNullOrEmpty(buildFolder.AssetBundleName)
-                                ? buildFolder.Path.Substring(ASSSETS_STRING.Length + 1)
+                                ? assetBundleName
                                 : buildFolder.AssetBundleName, buildFolder.VariantType);
                     }
                     else
                     {
-                        assetImporter.SetAssetBundleNameAndVariant(path.Substring(ASSSETS_STRING.Length + 1), buildFolder.VariantType);
+                        assetImporter.SetAssetBundleNameAndVariant(assetBundleName, buildFolder.VariantType);
                     }
                 }
                 else
                 {
-                    assetImporter.SetAssetBundleNameAndVariant(path.Substring(ASSSETS_STRING.Length + 1), string.Empty);
+                    assetImporter.SetAssetBundleNameAndVariant(assetBundleName, string.Empty);
                 }
             }
         }
@@ -122,6 +126,8 @@ namespace AssetBundleBrowser
                 Directory.CreateDirectory(mAbBuildInfo.outputDirectory);
             }
 
+            Caching.ClearCache();
+
             var buildManifest = BuildPipeline.BuildAssetBundles(mAbBuildInfo.outputDirectory, mAbBuildInfo.options,
                 mAbBuildInfo.buildTarget);
 
@@ -131,7 +137,10 @@ namespace AssetBundleBrowser
                 return;
             }
 
-            EncryptAssetBundle(buildManifest);
+            if (mAbBuildInfo.isEncrypt)
+            {
+                EncryptAssetBundle(buildManifest);
+            }
             GenerateAssetBundleUpdateInfo(buildManifest);
             ClearExtensionManifestFile();
 
@@ -273,9 +282,9 @@ namespace AssetBundleBrowser
                     MinorVersion = int.Parse(DateTime.Now.ToString("yyMMddHHmm")),
                     MarjorVersion = CURRENT_VERSION_MAJOR
                 };
-            versionInfo.Save(mAbBuildInfo.outputDirectory);
+            versionInfo.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
             var assetBundleUpdateInfo = new AssetBundleUpdateInfo(versionInfo.MinorVersion, mAbBuildInfo.outputDirectory, manifest);
-            assetBundleUpdateInfo.Save(mAbBuildInfo.outputDirectory);
+            assetBundleUpdateInfo.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
         }
 
         private void EncryptAssetBundle(AssetBundleManifest manifest)

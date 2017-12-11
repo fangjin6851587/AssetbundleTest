@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using AssetBundles;
 
@@ -9,13 +10,23 @@ public class LoadAssets : MonoBehaviour
 	public string assetBundleName;
 	public string assetName;
 
-	// Use this for initialization
+    private void OnLoadCallback(GameObject gameObject)
+    {
+        GameObject.Instantiate(gameObject);
+    }
+
+    //Use this for initialization
 	IEnumerator Start ()
 	{
-		yield return StartCoroutine(Initialize() );
+	    AssetBundleManager.IsAssetBundleEncrypted = true;
+        yield return StartCoroutine(AssetBundleManager.Initialize());
+        new AssetLoadTask<GameObject>(assetName, OnLoadCallback, assetBundleName);
+
+
+        //yield return StartCoroutine(Initialize() );
 		
 		// Load asset.
-		yield return StartCoroutine(InstantiateGameObjectAsync (assetBundleName, assetName) );
+		//yield return StartCoroutine(InstantiateGameObjectAsync (assetBundleName, assetName) );
 	}
 
 	// Initialize the downloading url and AssetBundleManifest object.
@@ -23,13 +34,14 @@ public class LoadAssets : MonoBehaviour
 	{
 		// Don't destroy this gameObject as we depend on it to run the loading script.
 		DontDestroyOnLoad(gameObject);
+	    AssetBundleManager.IsAssetBundleEncrypted = true;
 
-		// With this code, when in-editor or using a development builds: Always use the AssetBundle Server
-		// (This is very dependent on the production workflow of the project. 
-		// 	Another approach would be to make this configurable in the standalone player.)
-		#if DEVELOPMENT_BUILD || UNITY_EDITOR
-		AssetBundleManager.SetDevelopmentAssetBundleServer ();
-	    AssetBundleManager.SetSourceAssetBundleDirectory("/Assets/StreamingAssets/");
+        // With this code, when in-editor or using a development builds: Always use the AssetBundle Server
+        // (This is very dependent on the production workflow of the project. 
+        // 	Another approach would be to make this configurable in the standalone player.)
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+        AssetBundleManager.SetDevelopmentAssetBundleServer ();
+	    //AssetBundleManager.SetSourceAssetBundleDirectory("/Assets/StreamingAssets/");
 
 #else
 		// Use the following code if AssetBundles are embedded in the project for example via StreamingAssets folder etc:
@@ -40,7 +52,8 @@ public class LoadAssets : MonoBehaviour
 
         // Initialize AssetBundleManifest which loads the AssetBundleManifest object.
         var request = AssetBundleManager.Initialize();
-		if (request != null)
+
+        if (request != null)
 			yield return StartCoroutine(request);
 	}
 
