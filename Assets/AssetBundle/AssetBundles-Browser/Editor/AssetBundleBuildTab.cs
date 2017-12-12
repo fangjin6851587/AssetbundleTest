@@ -434,11 +434,11 @@ namespace AssetBundleBrowser
                         try
                         {
                             if (Directory.Exists(m_UserData.m_OutputPath))
-                                DeleteFilesAndFoldersRecursively(m_UserData.m_OutputPath);
+                                Directory.Delete(m_UserData.m_OutputPath, true);
 
                             if (m_CopyToStreaming.state)
                             if (Directory.Exists(m_streamingPath))
-                                DeleteFilesAndFoldersRecursively(m_streamingPath);
+                                Directory.Delete(m_streamingPath, true);
                         }
                         catch (System.Exception e)
                         {
@@ -487,22 +487,6 @@ namespace AssetBundleBrowser
 
             if(m_CopyToStreaming.state)
                 DirectoryCopy(m_UserData.m_OutputPath, m_streamingPath);
-        }
-
-        public static void DeleteFilesAndFoldersRecursively(string targetDir)
-        {
-            foreach (string file in Directory.GetFiles(targetDir))
-            {
-                File.Delete(file);
-            }
-
-            foreach (string subDir in Directory.GetDirectories(targetDir))
-            {
-                DeleteFilesAndFoldersRecursively(subDir);
-            }
-
-            Thread.Sleep(1); // This makes the difference between whether it works or not. Sleep(0) is not enough.
-            Directory.Delete(targetDir);
         }
 
         private static void DirectoryCopy(string sourceDirName, string destDirName)

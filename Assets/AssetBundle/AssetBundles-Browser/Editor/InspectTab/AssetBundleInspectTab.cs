@@ -29,7 +29,7 @@ namespace AssetBundleBrowser
 
         private SingleBundleInspector m_SingleInspector;
         private InspectVersion m_VersionInspector;
-        private InspectUpdate m_UpdateInfoInspector;
+        private InspectAssetBundleList m_BundleListInspector;
         private bool m_IsEncrypt;
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace AssetBundleBrowser
             m_SingleInspector = new SingleBundleInspector();
             m_loadedAssetBundles = new Dictionary<string, AssetBundleRecord>();
             m_VersionInspector = new InspectVersion();
-            m_UpdateInfoInspector = new InspectUpdate();
+            m_BundleListInspector = new InspectAssetBundleList();
         }
 
         internal void OnEnable(Rect pos, EditorWindow parent)
@@ -159,7 +159,7 @@ namespace AssetBundleBrowser
                 m_BundleTreeView.OnGUI(new Rect(m_Position.x, m_Position.y + 30, halfWidth, m_Position.height - 30));
                 m_SingleInspector.OnGUI(new Rect(m_Position.x + halfWidth, m_Position.y + 30, halfWidth, m_Position.height - 30));
                 m_VersionInspector.OnGUI(new Rect(m_Position.x + halfWidth, m_Position.y + 30, halfWidth, m_Position.height - 30));
-                m_UpdateInfoInspector.OnGUI(new Rect(m_Position.x + halfWidth, m_Position.y + 30, halfWidth, m_Position.height - 30));
+                m_BundleListInspector.OnGUI(new Rect(m_Position.x + halfWidth, m_Position.y + 30, halfWidth, m_Position.height - 30));
             }
         }
 
@@ -225,7 +225,7 @@ namespace AssetBundleBrowser
         {
             m_SingleInspector.SetBundle(null);
             m_VersionInspector.SetVersion(null);
-            m_UpdateInfoInspector.SetUpdateInfo(null);
+            m_BundleListInspector.SetBundleList(null);
 
             if (null != m_loadedAssetBundles)
             {
@@ -332,7 +332,7 @@ namespace AssetBundleBrowser
         internal void SetBundleItem(IList<InspectTreeItem> selected)
         {
             m_VersionInspector.SetVersion(null);
-            m_UpdateInfoInspector.SetUpdateInfo(null);
+            m_BundleListInspector.SetBundleList(null);
             m_SingleInspector.SetBundle(null);
 
             //m_SelectedBundleTreeItems = selected;
@@ -348,11 +348,11 @@ namespace AssetBundleBrowser
                     version.Load(selected[0].bundlePath.Replace(AssetBundleVersionInfo.FILE_NAME, ""), m_IsEncrypt);
                     m_VersionInspector.SetVersion(version);
                 }
-                else if (selected[0].displayName.EndsWith(AssetBundleUpdateInfo.FILE_NAME))
+                else if (selected[0].displayName.EndsWith(AssetBundleList.FILE_NAME))
                 {
-                    AssetBundleUpdateInfo updateInfo = new AssetBundleUpdateInfo();
-                    updateInfo.Load(selected[0].bundlePath.Replace(AssetBundleUpdateInfo.FILE_NAME, ""), m_IsEncrypt);
-                    m_UpdateInfoInspector.SetUpdateInfo(updateInfo);
+                    AssetBundleList bundleList = new AssetBundleList();
+                    bundleList.Load(selected[0].bundlePath.Replace(AssetBundleList.FILE_NAME, ""), m_IsEncrypt);
+                    m_BundleListInspector.SetBundleList(bundleList);
                 }
                 else
                 {

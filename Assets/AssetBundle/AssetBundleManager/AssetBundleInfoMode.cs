@@ -7,10 +7,64 @@ using UnityEngine;
 
 namespace AssetBundles
 {
-    public interface IProtoData
+    [Serializable]
+    public abstract class ProtoData
     {
-        void Load(string path, bool isEncrypt);
-        void Save(string path, bool isEncrypt);
+        public abstract string GetFileName();
+
+        public virtual void Load(string path, bool isEncrypt)
+        {
+            path = Path.Combine(path, GetFileName());
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            using (var fs = new FileStream(path, FileMode.Open))
+            {
+                var buffer = new byte[fs.Length];
+                fs.Read(buffer, 0, buffer.Length);
+                Load(buffer, isEncrypt);
+            }
+        }
+
+        public virtual void Load(byte[] buffer, bool isEncrypt)
+        {
+            if (isEncrypt)
+            {
+                buffer = Crypto.AesDecryptBytes(buffer);
+            }
+            using (var m = new MemoryStream(buffer))
+            {
+                var bf = new BinaryFormatter();
+                SetData(bf.Deserialize(m));
+            }
+        }
+
+        protected abstract void SetData(object obj);
+
+        public void Save(string path, bool isEncrypt)
+        {
+            path = Path.Combine(path, GetFileName());
+            using (var fs = new FileStream(path, FileMode.Create))
+            {
+                var bf = new BinaryFormatter();
+                if (isEncrypt)
+                {
+                    using (var m = new MemoryStream())
+                    {
+                        bf.Serialize(m, this);
+                        var buffer = Crypto.AesEncryptBytes(m.GetBuffer());
+                        fs.Write(buffer, 0, buffer.Length);
+                        fs.SetLength(buffer.Length);
+                    }
+                }
+                else
+                {
+                    bf.Serialize(fs, this);
+                }
+            }
+        }
     }
 
     [Serializable]
@@ -41,42 +95,53 @@ namespace AssetBundles
     }
 
     [Serializable]
-    public class AssetBundleUpdateInfo : IProtoData
+    public class AssetBundleList : ProtoData
     {
-        public const string FILE_NAME = "update.byte";
-        public int CurrentVersion;
-        public Dictionary<string, AssetBundleInfo> PendingList;
-        public int TargetVersion;
+        public const string FILE_NAME = "bundleList.byte";
+        public Dictionary<string, AssetBundleInfo> BundleList;
         public string[] AllAssetBundlesWithVariant;
 
-        public AssetBundleUpdateInfo()
+        public override string GetFileName()
         {
-            PendingList = new Dictionary<string, AssetBundleInfo>();
+            return FILE_NAME;
         }
 
-        public AssetBundleUpdateInfo(int version, string outPutPath, AssetBundleManifest manifest)
+        protected override void SetData(object obj)
         {
-            CurrentVersion = version;
-            TargetVersion = version;
-            var allAssetBundles = manifest.GetAllAssetBundles();
+            AssetBundleList bundleList = obj as AssetBundleList;
+            if (bundleList != null)
+            {
+                BundleList = bundleList.BundleList;
+                AllAssetBundlesWithVariant = bundleList.AllAssetBundlesWithVariant;
+            }
+        }
+
+        public AssetBundleList(string outPutPath, AssetBundleManifest manifest)
+        {
             AllAssetBundlesWithVariant = manifest.GetAllAssetBundlesWithVariant();
-            PendingList = new Dictionary<string, AssetBundleInfo>();
-            PendingList.Add(Utility.GetPlatformName(), GetManifestAssetBundleInfo(outPutPath));
+            BundleList = new Dictionary<string, AssetBundleInfo>();
+            BundleList.Add(Utility.GetPlatformName(), GetManifestAssetBundleInfo(outPutPath));
+            var allAssetBundles = manifest.GetAllAssetBundles();
             foreach (string assetBundle in allAssetBundles)
             {
-                PendingList.Add(assetBundle, new AssetBundleInfo(assetBundle, outPutPath, manifest));
+                BundleList.Add(assetBundle, new AssetBundleInfo(assetBundle, outPutPath, manifest));
             }
+        }
+
+        public AssetBundleList()
+        {
+            BundleList = new Dictionary<string, AssetBundleInfo>();
         }
 
         private AssetBundleInfo GetManifestAssetBundleInfo(string outPutPath)
         {
-            AssetBundleInfo assetBundle = null;
+            AssetBundleInfo assetBundle;
             using (var fs = new FileStream(Path.Combine(outPutPath, Utility.GetPlatformName()), FileMode.Open))
             {
                 assetBundle = new AssetBundleInfo();
                 assetBundle.AssetBundleName = Utility.GetPlatformName();
                 byte[] data = new byte[fs.Length];
-                fs.Write(data, 0, data.Length);
+                fs.Read(data, 0, data.Length);
                 assetBundle.Hash = Utility.ComputeMd5Hash(data);
                 assetBundle.Size = fs.Length;
             }
@@ -84,151 +149,73 @@ namespace AssetBundles
             return assetBundle;
         }
 
-        public void Load(string path, bool isEncrypt)
-        {
-            path = Path.Combine(path, FILE_NAME);
-            if (!File.Exists(path))
-            {
-                return;
-            }
-
-            using (var fs = new FileStream(path, FileMode.Open))
-            {
-                var buffer = new byte[fs.Length];
-                fs.Read(buffer, 0, buffer.Length);
-                Load(buffer, isEncrypt);
-            }
-        }
-
-        public void Load(byte[] buffer, bool isEncrypt)
-        {
-            if (isEncrypt)
-            {
-                buffer = Crypto.AesDecryptBytes(buffer);
-            }
-            using (var m = new MemoryStream(buffer))
-            {
-                var bf = new BinaryFormatter();
-                var updateInfo = bf.Deserialize(m) as AssetBundleUpdateInfo;
-                if (updateInfo == null)
-                {
-                    return;
-                }
-
-                CurrentVersion = updateInfo.CurrentVersion;
-                TargetVersion = updateInfo.TargetVersion;
-                PendingList = updateInfo.PendingList;
-                AllAssetBundlesWithVariant = updateInfo.AllAssetBundlesWithVariant;
-            }
-        }
-
-        public void Save(string path, bool isEncrypt)
-        {
-            path = Path.Combine(path, FILE_NAME);
-            using (var fs = new FileStream(path, FileMode.Create))
-            {
-                var bf = new BinaryFormatter();
-                if (isEncrypt)
-                {
-                    using (var m = new MemoryStream())
-                    {
-                        bf.Serialize(m, this);
-                        var buffer = Crypto.AesEncryptBytes(m.GetBuffer());
-                        fs.Write(buffer, 0, buffer.Length);
-                        fs.SetLength(buffer.Length);
-                    }
-                }
-                else
-                {
-                    bf.Serialize(fs, this);
-                }
-            }
-        }
-
         public AssetBundleInfo GetAssetBundleInfo(string assetBundleName)
         {
             AssetBundleInfo assetBundleInfo;
-            PendingList.TryGetValue(assetBundleName, out assetBundleInfo);
+            BundleList.TryGetValue(assetBundleName, out assetBundleInfo);
             return assetBundleInfo;
         }
 
         public AssetBundleInfo GetAssetBundleInfoHash(string hash)
         {
-            return PendingList.Values.FirstOrDefault(p => p.Hash == hash);
+            return BundleList.Values.FirstOrDefault(p => p.Hash == hash);
         }
 
-        public long GetPendingListSize()
+        public long GetAsetBundleTotalSize()
         {
-            return PendingList.Values.Sum(assetBundleInfo => assetBundleInfo.Size);
+            return BundleList.Values.Sum(assetBundleInfo => assetBundleInfo.Size);
         }
     }
 
     [Serializable]
-    public class AssetBundleVersionInfo : IProtoData
+    public class AssetBundleUpdateInfo : ProtoData
+    {
+        public const string FILE_NAME = "update.byte";
+        public int CurrentVersion;
+        public Dictionary<string, AssetBundleInfo> PendingList;
+        public int TargetVersion;
+
+        public AssetBundleUpdateInfo()
+        {
+            PendingList = new Dictionary<string, AssetBundleInfo>();
+        }
+
+        public override string GetFileName()
+        {
+            return FILE_NAME;
+        }
+
+        protected override void SetData(object obj)
+        {
+            AssetBundleUpdateInfo updateInfo = obj as AssetBundleUpdateInfo;
+            if (updateInfo != null)
+            {
+                CurrentVersion = updateInfo.CurrentVersion;
+                PendingList = updateInfo.PendingList;
+                TargetVersion = updateInfo.TargetVersion;
+            }
+        }
+    }
+
+    [Serializable]
+    public class AssetBundleVersionInfo : ProtoData
     {
         public const string FILE_NAME = "version.byte";
         public int MarjorVersion;
         public int MinorVersion;
 
-        public void Load(string path, bool isEncrypt)
+        public override string GetFileName()
         {
-            path = Path.Combine(path, FILE_NAME);
-            if (!File.Exists(path))
-            {
-                return;
-            }
-
-            using (var fs = new FileStream(path, FileMode.Open))
-            {
-                if (isEncrypt)
-                {
-                    var buffer = new byte[fs.Length];
-                    fs.Read(buffer, 0, buffer.Length);
-                    buffer = Crypto.AesDecryptBytes(buffer);
-                    using (var m = new MemoryStream(buffer))
-                    {
-                        var bf = new BinaryFormatter();
-                        var bundleVersionInfo = bf.Deserialize(m) as AssetBundleVersionInfo;
-                        if (bundleVersionInfo != null)
-                        {
-                            MarjorVersion = bundleVersionInfo.MarjorVersion;
-                            MinorVersion = bundleVersionInfo.MinorVersion;
-                        }
-                    }
-                }
-                else
-                {
-                    var bf = new BinaryFormatter();
-                    var bundleVersionInfo = bf.Deserialize(fs) as AssetBundleVersionInfo;
-                    if (bundleVersionInfo != null)
-                    {
-                        MarjorVersion = bundleVersionInfo.MarjorVersion;
-                        MinorVersion = bundleVersionInfo.MinorVersion;
-                    }
-                }
-            }
+            return FILE_NAME;
         }
 
-        public void Save(string path, bool isEncrypt)
+        protected override void SetData(object obj)
         {
-            path = Path.Combine(path, FILE_NAME);
-            using (var fs = new FileStream(path, FileMode.Create))
+            AssetBundleVersionInfo version = obj as AssetBundleVersionInfo;
+            if (version != null)
             {
-                var bf = new BinaryFormatter();
-                if (isEncrypt)
-                {
-                    using (var m = new MemoryStream())
-                    {
-                        bf.Serialize(m, this);
-                        var buffer = Crypto.AesEncryptBytes(m.GetBuffer());
-                        fs.Write(buffer, 0, buffer.Length);
-                        fs.SetLength(buffer.Length);
-                    }
-                }
-                else
-                {
-                    bf.Serialize(fs, this);
-                }
+                MarjorVersion = version.MarjorVersion;
+                MinorVersion = version.MinorVersion;
             }
         }
     }

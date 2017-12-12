@@ -1,16 +1,15 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using AssetBundles;
 using UnityEditor;
 using UnityEngine;
 
 namespace AssetBundleBrowser
 {
-    public class InspectUpdate
+    public class InspectAssetBundleList
     {
-        internal InspectUpdate() { }
+        internal InspectAssetBundleList() { }
 
-        private AssetBundleUpdateInfo mUpdateInfo;
+        private AssetBundleList mBundleList;
 
         private Rect mPosition;
 
@@ -18,7 +17,7 @@ namespace AssetBundleBrowser
         private Vector2 mScrollPosition;
 
         private bool mAllVariant;
-        private bool mPendingList;
+        private bool mBundleFolder;
 
         internal class AssetBundleInfoFoldout
         {
@@ -28,14 +27,14 @@ namespace AssetBundleBrowser
 
         private Dictionary<string, AssetBundleInfoFoldout> mAssetBundleInfoFoldouts = new Dictionary<string, AssetBundleInfoFoldout>();
 
-        internal void SetUpdateInfo(AssetBundleUpdateInfo updateInfo)
+        internal void SetBundleList(AssetBundleList updateInfo)
         {
             mAssetBundleInfoFoldouts.Clear();
             //members
-            mUpdateInfo = updateInfo;
+            mBundleList = updateInfo;
             if (updateInfo != null)
             {
-                foreach (var keyPairValue in mUpdateInfo.PendingList)
+                foreach (var keyPairValue in mBundleList.BundleList)
                 {
                     mAssetBundleInfoFoldouts.Add(keyPairValue.Key, new AssetBundleInfoFoldout());
                 }
@@ -51,36 +50,34 @@ namespace AssetBundleBrowser
 
         private void DrawBundleData()
         {
-            if (mUpdateInfo != null)
+            if (mBundleList != null)
             {
                 GUILayout.BeginArea(mPosition);
                 mScrollPosition = EditorGUILayout.BeginScrollView(mScrollPosition);
                 using (new EditorGUI.DisabledScope(true))
                 {
-                    EditorGUILayout.LabelField("Current Version", mUpdateInfo.CurrentVersion.ToString());
-                    EditorGUILayout.LabelField("Target Version", mUpdateInfo.CurrentVersion.ToString());
                     mAllVariant = EditorGUILayout.Foldout(mAllVariant, "All Variant");
                     if (mAllVariant)
                     {
                         int indent = EditorGUI.indentLevel;
                         EditorGUI.indentLevel = 1;
-                        int size = mUpdateInfo.AllAssetBundlesWithVariant.Length;
+                        int size = mBundleList.AllAssetBundlesWithVariant.Length;
                         EditorGUILayout.LabelField("Size", size.ToString());
                         for (int i = 0; i < size; i++)
                         {
-                            EditorGUILayout.LabelField((i + 1).ToString(), mUpdateInfo.AllAssetBundlesWithVariant[i]);
+                            EditorGUILayout.LabelField((i + 1).ToString(), mBundleList.AllAssetBundlesWithVariant[i]);
                         }
                         EditorGUI.indentLevel = indent;
                     }
 
-                    mPendingList = EditorGUILayout.Foldout(mPendingList, "Pending List");
-                    if (mPendingList)
+                    mBundleFolder = EditorGUILayout.Foldout(mBundleFolder, "Pending List");
+                    if (mBundleFolder)
                     {
                         int indent = EditorGUI.indentLevel;
                         EditorGUI.indentLevel = 1;
-                        int size = mUpdateInfo.PendingList.Count;
+                        int size = mBundleList.BundleList.Count;
                         EditorGUILayout.LabelField("Size", size.ToString());
-                        foreach (var keyPairValue in mUpdateInfo.PendingList)
+                        foreach (var keyPairValue in mBundleList.BundleList)
                         {
                             var foldout = mAssetBundleInfoFoldouts[keyPairValue.Key];
                             foldout.Foldout = EditorGUILayout.Foldout(foldout.Foldout, keyPairValue.Key);
@@ -99,7 +96,7 @@ namespace AssetBundleBrowser
 
                                 if (dependencySize > 0)
                                 {
-                                    foldout.DependenciesFoldout = EditorGUILayout.Foldout(foldout.DependenciesFoldout, "Dependencies");
+                                    foldout.DependenciesFoldout = EditorGUILayout.Foldout(foldout.DependenciesFoldout, "AssetBundleList");
                                     if (foldout.DependenciesFoldout)
                                     {
                                         EditorGUI.indentLevel = 3;

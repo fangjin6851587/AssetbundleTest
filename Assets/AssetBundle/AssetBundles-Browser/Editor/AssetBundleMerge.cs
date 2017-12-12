@@ -9,14 +9,14 @@ namespace AssetBundleBrowser
 {
     public class AssetBundleMerge
     {
-        public static void Pack(string path, string outPath, AssetBundleUpdateInfo updateInfo)
+        public static void Pack(string path, string outPath, AssetBundleList bundleList)
         {
             int id = 0;
             int totalSize = 0;
             var allFileInfoDic = new Dictionary<int, AssetBundleFileInfo>();
 
             path = path.Replace("\\", "/");
-            foreach (var assetBundle in updateInfo.PendingList.Values)
+            foreach (var assetBundle in bundleList.BundleList.Values)
             {
                 var fileInfo = new FileInfo(Path.Combine(path, assetBundle.AssetBundleName));
                 if (!fileInfo.Exists)
@@ -115,7 +115,7 @@ namespace AssetBundleBrowser
 
                     Debug.Log(allFileInfoDic[index].ToString());
 
-                    var abi = updateInfo.GetAssetBundleInfoHash(allFileInfoDic[index].Hash);
+                    var abi = bundleList.GetAssetBundleInfoHash(allFileInfoDic[index].Hash);
                     if (abi != null)
                     {
                         abi.StartOffset = allFileInfoDic[index].StartPos;

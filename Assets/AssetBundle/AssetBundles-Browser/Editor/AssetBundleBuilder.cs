@@ -99,7 +99,7 @@ namespace AssetBundleBrowser
             {
                 EncryptAssetBundle(buildManifest);
             }
-            var assetBundleUpdateInfo = GenerateAssetBundleUpdateInfo(buildManifest);
+            var assetBundleList = GenerateAssetBundleList(buildManifest);
             ClearExtensionManifestFile();
 
             if (mAbBuildInfo.mergeOneFile)
@@ -109,9 +109,9 @@ namespace AssetBundleBrowser
                     Directory.CreateDirectory(mAbBuildInfo.GetExtraOutPutDirectory());
                 }
 
-                MergeAssetBundle(assetBundleUpdateInfo);
-                File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME, mAbBuildInfo.GetExtraOutPutDirectory() + "/" + AssetBundleVersionInfo.FILE_NAME);
-                File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleUpdateInfo.FILE_NAME, mAbBuildInfo.GetExtraOutPutDirectory() + "/" + AssetBundleUpdateInfo.FILE_NAME);
+                MergeAssetBundle(assetBundleList);
+                File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME, mAbBuildInfo.GetExtraOutPutDirectory() + "/" + AssetBundleVersionInfo.FILE_NAME, true);
+                File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleList.FILE_NAME, mAbBuildInfo.GetExtraOutPutDirectory() + "/" + AssetBundleList.FILE_NAME, true);
             }
 
             foreach (string assetBundleName in buildManifest.GetAllAssetBundles())
@@ -276,7 +276,7 @@ namespace AssetBundleBrowser
             }
         }
 
-        private AssetBundleUpdateInfo GenerateAssetBundleUpdateInfo(AssetBundleManifest manifest)
+        private AssetBundleList GenerateAssetBundleList(AssetBundleManifest manifest)
         {
             var versionInfo =
                 new AssetBundleVersionInfo
@@ -285,10 +285,10 @@ namespace AssetBundleBrowser
                     MarjorVersion = CURRENT_VERSION_MAJOR
                 };
             versionInfo.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
-            var assetBundleUpdateInfo =
-                new AssetBundleUpdateInfo(versionInfo.MinorVersion, mAbBuildInfo.outputDirectory, manifest);
-            assetBundleUpdateInfo.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
-            return assetBundleUpdateInfo;
+            var assetBundleList =
+                new AssetBundleList(mAbBuildInfo.outputDirectory, manifest);
+            assetBundleList.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
+            return assetBundleList;
         }
 
         private BuildFolder GetBuildFolder(string path)
@@ -355,10 +355,10 @@ namespace AssetBundleBrowser
             return fileRelativePath;
         }
 
-        private void MergeAssetBundle(AssetBundleUpdateInfo updateInfo)
+        private void MergeAssetBundle(AssetBundleList bundleList)
         {
-            AssetBundleMerge.Pack(mAbBuildInfo.outputDirectory, Path.Combine(mAbBuildInfo.GetExtraOutPutDirectory(), Utility.GetPackPlatfomrName()), updateInfo);
-            updateInfo.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
+            AssetBundleMerge.Pack(mAbBuildInfo.outputDirectory, Path.Combine(mAbBuildInfo.GetExtraOutPutDirectory(), Utility.GetPackPlatfomrName()), bundleList);
+            bundleList.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
         }
 
         private void SetAssetBundleNames()
