@@ -720,6 +720,8 @@ namespace AssetBundles
 
         static public IEnumerator LoadInResourcePackedAsset<T>(string assetBundleName, string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
         {
+            assetBundleName = assetBundleName.ToLower();
+
             AssetBundleLoadAssetOperation operation;
             if (m_AssetBundleManifest == null || string.IsNullOrEmpty(m_AssetBundleManifest.GetAllAssetBundles().FirstOrDefault(s => s == assetBundleName)))
             {

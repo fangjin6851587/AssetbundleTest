@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -9,6 +11,29 @@ namespace AssetBundles
     {
         public const string AssetBundlesOutputPath = "AssetBundles";
 
+        public static string ComputeMd5Hash(byte[] data)
+        {
+            using (MD5 md5 = MD5.Create())
+            {
+                data = md5.ComputeHash(data);
+                StringBuilder sBuilder = new StringBuilder();
+                // Loop through each byte of the hashed data 
+                // and format each one as a hexadecimal string.
+                for (int i = 0; i < data.Length; i++)
+                {
+                    sBuilder.Append(data[i].ToString("x2"));
+                }
+
+                return sBuilder.ToString();
+            }
+        }
+
+        public static string ComputeMd5Hash(string input)
+        {
+            return ComputeMd5Hash(Encoding.UTF8.GetBytes(input));
+        }
+
+
         public static string GetPlatformName()
         {
 #if UNITY_EDITOR
@@ -16,6 +41,11 @@ namespace AssetBundles
 #else
             return GetPlatformForAssetBundles(Application.platform);
 #endif
+        }
+
+        public static string GetPackPlatfomrName()
+        {
+            return "AssetBundle_" + GetPlatformName() + ".byte";
         }
 
 #if UNITY_EDITOR

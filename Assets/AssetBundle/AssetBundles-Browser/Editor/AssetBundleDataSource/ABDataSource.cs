@@ -39,6 +39,13 @@ namespace AssetBundleBrowser.AssetBundleDataSource
         public List<BuildFolder> buildFolderList;
 
         public bool isEncrypt;
+
+        public bool mergeOneFile;
+
+        public string GetExtraOutPutDirectory()
+        {
+            return outputDirectory + "_Extra";
+        }
     }
 
 /// <summary>

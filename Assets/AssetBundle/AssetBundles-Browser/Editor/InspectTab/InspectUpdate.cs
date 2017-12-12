@@ -90,19 +90,20 @@ namespace AssetBundleBrowser
                                 EditorGUILayout.LabelField("AssetBundleName", keyPairValue.Value.AssetBundleName);
                                 EditorGUILayout.LabelField("Hash", keyPairValue.Value.Hash);
                                 EditorGUILayout.LabelField("Size", keyPairValue.Value.Size.ToString());
-                                foldout.DependenciesFoldout = EditorGUILayout.Foldout(foldout.DependenciesFoldout, "Dependencies");
-                                if (foldout.DependenciesFoldout)
-                                {
-                                    EditorGUI.indentLevel = 3;
-                                    size = 0;
-                                    if (keyPairValue.Value.Dependencies != null)
-                                    {
-                                        size = keyPairValue.Value.Dependencies.Length;
-                                    }
 
-                                    if (size > 0)
+                                int dependencySize = 0;
+                                if (keyPairValue.Value.Dependencies != null)
+                                {
+                                    dependencySize = keyPairValue.Value.Dependencies.Length;
+                                }
+
+                                if (dependencySize > 0)
+                                {
+                                    foldout.DependenciesFoldout = EditorGUILayout.Foldout(foldout.DependenciesFoldout, "Dependencies");
+                                    if (foldout.DependenciesFoldout)
                                     {
-                                        EditorGUILayout.LabelField("Size", size.ToString());
+                                        EditorGUI.indentLevel = 3;
+                                        EditorGUILayout.LabelField("Size", dependencySize.ToString());
                                         int i = 1;
                                         foreach (var dependency in keyPairValue.Value.Dependencies)
                                         {
@@ -111,6 +112,7 @@ namespace AssetBundleBrowser
                                         }
                                     }
                                 }
+                                
                                 EditorGUI.indentLevel = 2;
                             }
                             EditorGUI.indentLevel = 1;

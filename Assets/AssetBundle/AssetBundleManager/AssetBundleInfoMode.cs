@@ -20,6 +20,7 @@ namespace AssetBundles
         public string[] Dependencies;
         public string Hash;
         public long Size;
+        public int StartOffset;
 
         public AssetBundleInfo()
         {
@@ -60,10 +61,27 @@ namespace AssetBundles
             var allAssetBundles = manifest.GetAllAssetBundles();
             AllAssetBundlesWithVariant = manifest.GetAllAssetBundlesWithVariant();
             PendingList = new Dictionary<string, AssetBundleInfo>();
+            PendingList.Add(Utility.GetPlatformName(), GetManifestAssetBundleInfo(outPutPath));
             foreach (string assetBundle in allAssetBundles)
             {
                 PendingList.Add(assetBundle, new AssetBundleInfo(assetBundle, outPutPath, manifest));
             }
+        }
+
+        private AssetBundleInfo GetManifestAssetBundleInfo(string outPutPath)
+        {
+            AssetBundleInfo assetBundle = null;
+            using (var fs = new FileStream(Path.Combine(outPutPath, Utility.GetPlatformName()), FileMode.Open))
+            {
+                assetBundle = new AssetBundleInfo();
+                assetBundle.AssetBundleName = Utility.GetPlatformName();
+                byte[] data = new byte[fs.Length];
+                fs.Write(data, 0, data.Length);
+                assetBundle.Hash = Utility.ComputeMd5Hash(data);
+                assetBundle.Size = fs.Length;
+            }
+
+            return assetBundle;
         }
 
         public void Load(string path, bool isEncrypt)
@@ -132,6 +150,11 @@ namespace AssetBundles
             AssetBundleInfo assetBundleInfo;
             PendingList.TryGetValue(assetBundleName, out assetBundleInfo);
             return assetBundleInfo;
+        }
+
+        public AssetBundleInfo GetAssetBundleInfoHash(string hash)
+        {
+            return PendingList.Values.FirstOrDefault(p => p.Hash == hash);
         }
 
         public long GetPendingListSize()

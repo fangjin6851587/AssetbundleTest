@@ -54,6 +54,7 @@ namespace AssetBundleBrowser
         ToggleData m_ForceRebuild;
         ToggleData m_CopyToStreaming;
         ToggleData m_Encrypt;
+        ToggleData m_Merge;
         GUIContent m_TargetContent;
         GUIContent m_CompressionContent;
         internal enum CompressOptions
@@ -164,6 +165,11 @@ namespace AssetBundleBrowser
                 false,
                 "Encrpyt AssetBundle",
                 "Encrypt AssetBundle with AES, you can change the key in the Crypto.cs file.",
+                m_UserData.m_OnToggles);
+            m_Merge = new ToggleData(
+                false,
+                "Merge AssetBundle",
+                "Merge all AssetBundle into one file.",
                 m_UserData.m_OnToggles);
 
             m_TargetContent = new GUIContent("Build Target", "Choose target platform to build for.");
@@ -298,6 +304,19 @@ namespace AssetBundleBrowser
                     else
                         m_UserData.m_OnToggles.Remove(m_Encrypt.content.text);
                     m_Encrypt.state = newState;
+                }
+
+
+                newState = GUILayout.Toggle(
+                    m_Merge.state,
+                    m_Merge.content);
+                if (newState != m_Merge.state)
+                {
+                    if (newState)
+                        m_UserData.m_OnToggles.Add(m_Merge.content.text);
+                    else
+                        m_UserData.m_OnToggles.Remove(m_Merge.content.text);
+                    m_Merge.state = newState;
                 }
             }
 
@@ -445,13 +464,14 @@ namespace AssetBundleBrowser
                 }
             }
 
-            AssetBundleDataSource.ABBuildInfo buildInfo = new AssetBundleDataSource.ABBuildInfo();
+            ABBuildInfo buildInfo = new ABBuildInfo();
 
             buildInfo.outputDirectory = m_UserData.m_OutputPath;
             buildInfo.options = opt;
             buildInfo.buildTarget = (BuildTarget)m_UserData.m_BuildTarget;
             buildInfo.buildFolderList = m_UserData.m_BuildFolderList;
             buildInfo.isEncrypt = m_Encrypt.state;
+            buildInfo.mergeOneFile = m_Merge.state;
             buildInfo.onBuild = (assetBundleName) =>
             {
                 if (m_InspectTab == null)
