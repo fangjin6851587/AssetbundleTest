@@ -631,6 +631,8 @@ namespace AssetBundles
         protected T mResult;
         protected bool mShowDebugString;
 
+        protected float mStartLoadTime;
+
         public Object Resource
         {
             get { return mResult; }
@@ -656,6 +658,10 @@ namespace AssetBundles
             mPath = path;
             mCallBack = callBack;
             mShowDebugString = showDebugString;
+
+#if UNITY_EDITOR
+            mStartLoadTime = Time.realtimeSinceStartup;
+#endif
 
             if (Application.isPlaying)
             {
@@ -687,7 +693,12 @@ namespace AssetBundles
             {
                 if (mResult == null)
                 {
-                    Debug.LogWarning("Resource at " + mPath + " could not be loaded !!!");
+                    Debug.LogWarning("[AssetLoadTask] Resource at " + mPath + " could not be loaded !!!");
+                }
+                else
+                {
+                    float t = Time.realtimeSinceStartup - mStartLoadTime;
+                    Debug.Log("[AssetLoadTask] Resource at " + mPath + " loaded. [t=" + t + "]");
                 }
             }
 #endif
