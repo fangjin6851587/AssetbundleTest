@@ -111,6 +111,24 @@ namespace AssetBundleBrowser
                 MergeAssetBundle(assetBundleList);
                 File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME, mAbBuildInfo.GetExtraOutPutDirectory() + "/" + AssetBundleVersionInfo.FILE_NAME, true);
                 File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleList.FILE_NAME, mAbBuildInfo.GetExtraOutPutDirectory() + "/" + AssetBundleList.FILE_NAME, true);
+
+                var localAssetsPath = Application.dataPath + "/Resources/" + Utility.GetLocalAssetsInfo();
+                if (mAbBuildInfo.copyLocalAssets)
+                {
+                    if (!Directory.Exists(localAssetsPath))
+                    {
+                        Directory.CreateDirectory(localAssetsPath);
+                    }
+                    File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME, localAssetsPath + "/" + AssetBundleVersionInfo.FILE_NAME, true);
+                    File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleList.FILE_NAME, localAssetsPath + "/" + AssetBundleList.FILE_NAME, true);
+                }
+                else
+                {
+                    if (Directory.Exists(localAssetsPath))
+                    {
+                        Directory.Delete(localAssetsPath, true);
+                    }
+                }
             }
 
             foreach (string assetBundleName in buildManifest.GetAllAssetBundles())

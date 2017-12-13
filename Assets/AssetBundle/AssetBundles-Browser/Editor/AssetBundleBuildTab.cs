@@ -55,6 +55,8 @@ namespace AssetBundleBrowser
         ToggleData m_CopyToStreaming;
         ToggleData m_Encrypt;
         ToggleData m_Merge;
+        ToggleData m_CopyUpdateListToLocal;
+
         GUIContent m_TargetContent;
         GUIContent m_CompressionContent;
         internal enum CompressOptions
@@ -170,6 +172,11 @@ namespace AssetBundleBrowser
                 false,
                 "Merge AssetBundle",
                 "Merge all AssetBundle into one file.",
+                m_UserData.m_OnToggles);
+            m_CopyUpdateListToLocal = new ToggleData(
+                false,
+                "Copy Local Assets Info",
+                "Copy version and AssetBundle List file to local.",
                 m_UserData.m_OnToggles);
 
             m_TargetContent = new GUIContent("Build Target", "Choose target platform to build for.");
@@ -317,6 +324,18 @@ namespace AssetBundleBrowser
                     else
                         m_UserData.m_OnToggles.Remove(m_Merge.content.text);
                     m_Merge.state = newState;
+                }
+
+                newState = GUILayout.Toggle(
+                    m_CopyUpdateListToLocal.state,
+                    m_CopyUpdateListToLocal.content);
+                if (newState != m_CopyUpdateListToLocal.state)
+                {
+                    if (newState)
+                        m_UserData.m_OnToggles.Add(m_CopyUpdateListToLocal.content.text);
+                    else
+                        m_UserData.m_OnToggles.Remove(m_CopyUpdateListToLocal.content.text);
+                    m_CopyUpdateListToLocal.state = newState;
                 }
             }
 
@@ -472,6 +491,7 @@ namespace AssetBundleBrowser
             buildInfo.buildFolderList = m_UserData.m_BuildFolderList;
             buildInfo.isEncrypt = m_Encrypt.state;
             buildInfo.mergeOneFile = m_Merge.state;
+            buildInfo.copyLocalAssets = m_CopyUpdateListToLocal.state;
             buildInfo.onBuild = (assetBundleName) =>
             {
                 if (m_InspectTab == null)

@@ -55,6 +55,11 @@ namespace AssetBundles
 #endif
         }
 
+        public static string GetLocalAssetsInfo()
+        {
+            return "LocalAssetsInfo/";
+        }
+
         public static string GetPackPlatfomrName()
         {
             return "AssetBundle_" + GetPlatformName() + ".byte";

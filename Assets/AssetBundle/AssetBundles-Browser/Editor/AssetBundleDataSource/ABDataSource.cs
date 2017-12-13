@@ -42,6 +42,8 @@ namespace AssetBundleBrowser.AssetBundleDataSource
 
         public bool mergeOneFile;
 
+        public bool copyLocalAssets;
+
         public string GetExtraOutPutDirectory()
         {
             return outputDirectory + "_Extra";
