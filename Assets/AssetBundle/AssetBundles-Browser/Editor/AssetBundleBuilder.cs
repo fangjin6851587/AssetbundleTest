@@ -18,7 +18,6 @@ namespace AssetBundleBrowser
     public class AssetBundleBuilder
     {
         private static readonly string ASSSETS_STRING = "Assets";
-        private static readonly int CURRENT_VERSION_MAJOR = 1;
         private readonly Dictionary<string, AssetNode> mAllAssetNodes = new Dictionary<string, AssetNode>();
         private readonly List<string> mBuildMap = new List<string>();
 
@@ -282,7 +281,7 @@ namespace AssetBundleBrowser
                 new AssetBundleVersionInfo
                 {
                     MinorVersion = int.Parse(DateTime.Now.ToString("yyMMddHHmm")),
-                    MarjorVersion = CURRENT_VERSION_MAJOR
+                    MarjorVersion = AssetBundleUpdater.CURRENT_VERSION_MAJOR
                 };
             versionInfo.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
             var assetBundleList =
@@ -357,7 +356,7 @@ namespace AssetBundleBrowser
 
         private void MergeAssetBundle(AssetBundleList bundleList)
         {
-            AssetBundleMerge.Pack(mAbBuildInfo.outputDirectory, Path.Combine(mAbBuildInfo.GetExtraOutPutDirectory(), Utility.GetPackPlatfomrName()), bundleList);
+            AssetBundleMerge.Pack(Application.dataPath.Substring(0, Application.dataPath.Length - ASSSETS_STRING.Length) + mAbBuildInfo.outputDirectory, Path.Combine(mAbBuildInfo.GetExtraOutPutDirectory(), Utility.GetPackPlatfomrName()), bundleList);
             bundleList.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
         }
 

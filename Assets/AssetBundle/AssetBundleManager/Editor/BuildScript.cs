@@ -16,7 +16,7 @@ namespace AssetBundles
         static public string CreateAssetBundleDirectory()
         {
             // Choose the output path according to the build target.
-            string outputPath = Path.Combine(Utility.AssetBundlesOutputPath, Utility.GetPlatformName());
+            string outputPath = Path.Combine(Utility.ASSET_BUNDLES_OUTPUT_PATH, Utility.GetPlatformName());
             if (!Directory.Exists(outputPath))
                 Directory.CreateDirectory(outputPath);
 
@@ -145,7 +145,7 @@ namespace AssetBundles
 
             // Build and copy AssetBundles.
             BuildScript.BuildAssetBundles();
-            BuildScript.CopyAssetBundlesTo(Path.Combine(Application.streamingAssetsPath, Utility.AssetBundlesOutputPath));
+            BuildScript.CopyAssetBundlesTo(Path.Combine(Application.streamingAssetsPath, Utility.ASSET_BUNDLES_OUTPUT_PATH));
             AssetDatabase.Refresh();
 
 #if UNITY_5_4 || UNITY_5_3 || UNITY_5_2 || UNITY_5_1 || UNITY_5_0
@@ -194,7 +194,7 @@ namespace AssetBundles
             string outputFolder = Utility.GetPlatformName();
 
             // Setup the source folder for assetbundles.
-            var source = Path.Combine(Path.Combine(System.Environment.CurrentDirectory, Utility.AssetBundlesOutputPath), outputFolder);
+            var source = Path.Combine(Path.Combine(System.Environment.CurrentDirectory, Utility.ASSET_BUNDLES_OUTPUT_PATH), outputFolder);
             if (!System.IO.Directory.Exists(source))
                 Debug.Log("No assetBundle output folder, try to build the assetBundles first.");
 
@@ -220,7 +220,7 @@ namespace AssetBundles
 
         static string GetAssetBundleManifestFilePath()
         {
-            var relativeAssetBundlesOutputPathForPlatform = Path.Combine(Utility.AssetBundlesOutputPath, Utility.GetPlatformName());
+            var relativeAssetBundlesOutputPathForPlatform = Path.Combine(Utility.ASSET_BUNDLES_OUTPUT_PATH, Utility.GetPlatformName());
             return Path.Combine(relativeAssetBundlesOutputPathForPlatform,  Utility.GetPlatformName()) + ".manifest";
         }
     }

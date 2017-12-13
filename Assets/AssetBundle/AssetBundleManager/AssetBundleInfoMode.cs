@@ -171,18 +171,25 @@ namespace AssetBundles
     public class AssetBundleUpdateInfo : ProtoData
     {
         public const string FILE_NAME = "update.byte";
-        public int CurrentVersion;
+        public AssetBundleVersionInfo CurrentVersion;
+        public AssetBundleVersionInfo TargetVersion;
         public Dictionary<string, AssetBundleInfo> PendingList;
-        public int TargetVersion;
 
         public AssetBundleUpdateInfo()
         {
             PendingList = new Dictionary<string, AssetBundleInfo>();
+            CurrentVersion = new AssetBundleVersionInfo();
+            TargetVersion = new AssetBundleVersionInfo();
         }
 
         public override string GetFileName()
         {
             return FILE_NAME;
+        }
+
+        public void SyncCurrentVersion()
+        {
+            CurrentVersion = TargetVersion;
         }
 
         protected override void SetData(object obj)
@@ -191,9 +198,23 @@ namespace AssetBundles
             if (updateInfo != null)
             {
                 CurrentVersion = updateInfo.CurrentVersion;
-                PendingList = updateInfo.PendingList;
                 TargetVersion = updateInfo.TargetVersion;
+                PendingList = updateInfo.PendingList;
             }
+        }
+
+        public uint GetPendingListTotalSize()
+        {
+            long size = 0;
+            if (PendingList != null)
+            {
+                foreach (var pending in PendingList.Values)
+                {
+                    size += pending.Size;
+                }
+            }
+
+            return (uint)size;
         }
     }
 
@@ -216,6 +237,24 @@ namespace AssetBundles
             {
                 MarjorVersion = version.MarjorVersion;
                 MinorVersion = version.MinorVersion;
+            }
+        }
+
+        public static int Compare(AssetBundleVersionInfo v1, AssetBundleVersionInfo v2)
+        {
+            if (v1.MarjorVersion == v2.MarjorVersion && v1.MinorVersion == v2.MinorVersion)
+            {
+                return 0;
+            }
+            else
+            {
+                if (v1.MarjorVersion < v2.MarjorVersion ||
+                    v1.MarjorVersion == v2.MarjorVersion && v1.MinorVersion < v2.MinorVersion)
+                {
+                    return -1;
+                }
+
+                return 1;
             }
         }
     }
