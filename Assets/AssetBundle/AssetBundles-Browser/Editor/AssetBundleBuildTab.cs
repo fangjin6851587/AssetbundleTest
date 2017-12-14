@@ -233,9 +233,9 @@ namespace AssetBundleBrowser
                     {
                         if (string.IsNullOrEmpty(buildFolder.AssetBundleName))
                         {
-                            buildFolder.AssetBundleName = buildFolder.Path.Substring(buildFolder.Path.LastIndexOf("/", StringComparison.Ordinal) + 1);
+                            buildFolder.AssetBundleName = buildFolder.Path.Substring(7);
                         }
-                        buildFolder.AssetBundleName = EditorGUILayout.TextField("AssetBundle Name", buildFolder.AssetBundleName);
+                        EditorGUILayout.LabelField("AssetBundle Name:", buildFolder.AssetBundleName);
                     }
                     buildFolder.VariantType = EditorGUILayout.TextField("AssetBundle Variant", buildFolder.VariantType);
                     if (GUILayout.Button("-", GUILayout.MaxWidth(30)))

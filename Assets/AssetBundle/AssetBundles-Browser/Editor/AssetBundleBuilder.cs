@@ -27,6 +27,8 @@ namespace AssetBundleBrowser
         private List<BuildFolder> mDependciesFolder;
         private List<BuildFolder> mSingleFolder;
 
+        private AssetBundleVersionInfo mLastVersion;
+
         public void BuildAssetBundle(ABBuildInfo buildInfo)
         {
             mAbBuildInfo = buildInfo;
@@ -293,13 +295,13 @@ namespace AssetBundleBrowser
 
         private AssetBundleList GenerateAssetBundleList(AssetBundleManifest manifest)
         {
-            var versionInfo =
+            mLastVersion =
                 new AssetBundleVersionInfo
                 {
                     MinorVersion = int.Parse(DateTime.Now.ToString("yyMMddHHmm")),
                     MarjorVersion = AssetBundleUpdater.CURRENT_VERSION_MAJOR
                 };
-            versionInfo.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
+            mLastVersion.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
             var assetBundleList =
                 new AssetBundleList(mAbBuildInfo.outputDirectory, manifest);
             assetBundleList.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
@@ -372,14 +374,17 @@ namespace AssetBundleBrowser
 
         private void MergeAssetBundle(AssetBundleList bundleList)
         {
-            if (!Directory.Exists(mAbBuildInfo.GetExtraOutPutDirectory()))
+            string outPutDir = mAbBuildInfo.outputDirectory + "_" +
+                               mLastVersion.MarjorVersion + "_" + mLastVersion.MinorVersion;
+
+            if (!Directory.Exists(outPutDir))
             {
-                Directory.CreateDirectory(mAbBuildInfo.GetExtraOutPutDirectory());
+                Directory.CreateDirectory(outPutDir);
             }
-            AssetBundleMerge.Pack(Application.dataPath.Substring(0, Application.dataPath.Length - ASSSETS_STRING.Length) + mAbBuildInfo.outputDirectory, Path.Combine(mAbBuildInfo.GetExtraOutPutDirectory(), Utility.GetPackPlatfomrName()), bundleList);
+            AssetBundleMerge.Pack(Application.dataPath.Substring(0, Application.dataPath.Length - ASSSETS_STRING.Length) + mAbBuildInfo.outputDirectory, Path.Combine(outPutDir, Utility.GetPackPlatfomrName()), bundleList);
             bundleList.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
-            File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME, mAbBuildInfo.GetExtraOutPutDirectory() + "/" + AssetBundleVersionInfo.FILE_NAME, true);
-            File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleList.FILE_NAME, mAbBuildInfo.GetExtraOutPutDirectory() + "/" + AssetBundleList.FILE_NAME, true);
+            File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME, outPutDir + "/" + AssetBundleVersionInfo.FILE_NAME, true);
+            File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleList.FILE_NAME, outPutDir + "/" + AssetBundleList.FILE_NAME, true);
         }
 
         private void SetAssetBundleNames()

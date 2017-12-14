@@ -7,6 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using UnityEngine;
 
 namespace AssetBundles.AssetBundleHttpUtils
 {
@@ -187,7 +188,7 @@ namespace AssetBundles.AssetBundleHttpUtils
             OnHttpRequestResultListener = onHttpRequestListener;
             mTimeOutMS = timeOutTime;
 
-#if DEBUG_NETWORK_MSG
+#if UNITY_EDITOR
             Debug.Log("Network Debug - Http multi range request : " + url);
 #endif
             Start();
@@ -233,7 +234,7 @@ namespace AssetBundles.AssetBundleHttpUtils
                 foreach (var r in mRangeList)
                 {
                     request.AddRange(r.from, r.to);
-#if DEBUG_NETWORK_MSG
+#if UNITY_EDITOR
                     Debug.Log("http request multi range: " + r.ToString());
 #endif
                 }
@@ -321,8 +322,8 @@ namespace AssetBundles.AssetBundleHttpUtils
                                                     string rangeHeader =
                                                         Encoding.ASCII.GetString(header, 0, headerPosition + 1);
 
-#if DEBUG_NETWORK_MSG
-                                                Debug.Log("range header: " + rangeHeader + "boundary: " + boundary);
+#if UNITY_EDITOR
+                                                    Debug.Log("range header: " + rangeHeader + "boundary: " + boundary);
 #endif
 
                                                     var mm = Regex.Match(rangeHeader,
@@ -344,8 +345,8 @@ namespace AssetBundles.AssetBundleHttpUtils
                                                         headerPosition = 0;
                                                         headerSize = 0;
 
-#if DEBUG_NETWORK_MSG
-                                                Debug.Log(string.Format("http response mutil range: {0}-{1}", rangeStart, rangeEnd));
+#if UNITY_EDITOR
+                                                        Debug.Log(string.Format("http response mutil range: {0}-{1}", rangeStart, rangeEnd));
 #endif
 
                                                         lastRange = GetRange(rangeStart, rangeEnd);
@@ -397,8 +398,8 @@ namespace AssetBundles.AssetBundleHttpUtils
                                     {
                                         if (lastRange != null)
                                         {
-#if DEBUG_NETWORK_MSG
-                                        Debug.Log("end read http multi range: " + lastRange.ToString() + " time: " + System.DateTime.Now);
+#if UNITY_EDITOR
+                                            Debug.Log("end read http multi range: " + lastRange.ToString() + " time: " + System.DateTime.Now);
 #endif
                                             lastRange.data = ms.ToArray();
                                             mRangeList.Remove(lastRange);
@@ -431,8 +432,8 @@ namespace AssetBundles.AssetBundleHttpUtils
                             {
                                 lastRange = new HttpRange();
                             }
-#if DEBUG_NETWORK_MSG
-                        Debug.Log("start read http single range: " + lastRange.ToString());
+#if UNITY_EDITOR
+                            Debug.Log("start read http single range: " + lastRange.ToString());
 #endif
                             while (!mEndLoop && (bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
                             {
@@ -441,8 +442,8 @@ namespace AssetBundles.AssetBundleHttpUtils
 
                             rangeListCount = 0;
                             lastRange.data = ms.ToArray();
-#if DEBUG_NETWORK_MSG
-                        Debug.Log("end read http multi range: " + lastRange.ToString());
+#if UNITY_EDITOR
+                            Debug.Log("end read http multi range: " + lastRange.ToString());
 #endif
                             if (OnHttpRangeRequestListener != null)
                             {
@@ -487,8 +488,8 @@ namespace AssetBundles.AssetBundleHttpUtils
 
                 if (result != null)
                 {
-#if DEBUG_NETWORK_MSG
-                Debug.Log("multi range request result from url: " + mUrl);
+#if UNITY_EDITOR
+                    Debug.Log("multi range request result from url: " + mUrl);
                 Debug.Log(result.ToString());
 #endif
                     if (OnHttpRequestResultListener != null)

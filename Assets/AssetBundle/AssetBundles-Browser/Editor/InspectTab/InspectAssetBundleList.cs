@@ -70,7 +70,7 @@ namespace AssetBundleBrowser
                         EditorGUI.indentLevel = indent;
                     }
 
-                    mBundleFolder = EditorGUILayout.Foldout(mBundleFolder, "Pending List");
+                    mBundleFolder = EditorGUILayout.Foldout(mBundleFolder, "Aasset Bundle List");
                     if (mBundleFolder)
                     {
                         int indent = EditorGUI.indentLevel;
@@ -87,6 +87,7 @@ namespace AssetBundleBrowser
                                 EditorGUILayout.LabelField("AssetBundleName", keyPairValue.Value.AssetBundleName);
                                 EditorGUILayout.LabelField("Hash", keyPairValue.Value.Hash);
                                 EditorGUILayout.LabelField("Size", keyPairValue.Value.Size.ToString());
+                                EditorGUILayout.LabelField("offset", keyPairValue.Value.StartOffset.ToString());
 
                                 int dependencySize = 0;
                                 if (keyPairValue.Value.Dependencies != null)

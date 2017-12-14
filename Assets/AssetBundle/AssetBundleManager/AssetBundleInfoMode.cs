@@ -45,6 +45,11 @@ namespace AssetBundles
 
         public void Save(string path, bool isEncrypt)
         {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
             path = Path.Combine(path, GetFileName());
             using (var fs = new FileStream(path, FileMode.Create))
             {
@@ -97,7 +102,7 @@ namespace AssetBundles
     [Serializable]
     public class AssetBundleList : ProtoData
     {
-        public const string FILE_NAME = "bundleList.byte";
+        public const string FILE_NAME = "bundleList.bytes";
         public Dictionary<string, AssetBundleInfo> BundleList;
         public string[] AllAssetBundlesWithVariant;
 
@@ -170,7 +175,7 @@ namespace AssetBundles
     [Serializable]
     public class AssetBundleUpdateInfo : ProtoData
     {
-        public const string FILE_NAME = "update.byte";
+        public const string FILE_NAME = "update.bytes";
         public AssetBundleVersionInfo CurrentVersion;
         public AssetBundleVersionInfo TargetVersion;
         public Dictionary<string, AssetBundleInfo> PendingList;
@@ -221,7 +226,7 @@ namespace AssetBundles
     [Serializable]
     public class AssetBundleVersionInfo : ProtoData
     {
-        public const string FILE_NAME = "version.byte";
+        public const string FILE_NAME = "version.bytes";
         public int MarjorVersion;
         public int MinorVersion;
 

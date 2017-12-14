@@ -58,7 +58,7 @@ namespace AssetBundleBrowser
             int firstfilestartpos = 0 + 4;
             for (int index = 0; index < allFileInfoDic.Count; index++)
             {
-                firstfilestartpos += 4 + 4 + 4 + 4 + allFileInfoDic[index].PathLength + 24;
+                firstfilestartpos += 4 + 4 + 4 + 4 + allFileInfoDic[index].PathLength + 32;
             }
 
             for (int index = 0; index < allFileInfoDic.Count; index++)

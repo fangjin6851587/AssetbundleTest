@@ -381,8 +381,15 @@ namespace AssetBundles
     }
 #endif
 
+    internal interface IGetAsyncOperation
+    {
+        AsyncOperation GetAsyncOperation();
+
+        bool IsDone();
+    }
+
 #if UNITY_EDITOR
-    public class AssetBundleLoadLevelSimulationOperation : AssetBundleLoadOperation
+    public class AssetBundleLoadLevelSimulationOperation : AssetBundleLoadOperation, IGetAsyncOperation
     {
         AsyncOperation m_Operation = null;
 
@@ -413,10 +420,15 @@ namespace AssetBundles
         {
             return m_Operation == null || m_Operation.isDone;
         }
+
+        public AsyncOperation GetAsyncOperation()
+        {
+            return m_Operation;
+        }
     }
 #endif
 
-    public class AssetBundleLoadLevelOperation : AssetBundleLoadOperation
+    public class AssetBundleLoadLevelOperation : AssetBundleLoadOperation, IGetAsyncOperation
     {
         protected string m_AssetBundleName;
         protected string m_LevelName;
@@ -437,7 +449,7 @@ namespace AssetBundles
                 return false;
 
             LoadedAssetBundle bundle = AssetBundleManager.GetLoadedAssetBundle(m_AssetBundleName, out m_DownloadingError);
-            if (bundle != null)
+            if (bundle != null || string.IsNullOrEmpty(m_AssetBundleName))
             {
 #if UNITY_5_3 || UNITY_5_3_OR_NEWER
                 m_Request = SceneManager.LoadSceneAsync(m_LevelName, m_IsAdditive ? LoadSceneMode.Additive : LoadSceneMode.Single);
@@ -464,6 +476,11 @@ namespace AssetBundles
             }
 
             return m_Request != null && m_Request.isDone;
+        }
+
+        public AsyncOperation GetAsyncOperation()
+        {
+            return m_Request;
         }
     }
 
@@ -606,6 +623,11 @@ namespace AssetBundles
 
         public override bool Update()
         {
+            if (AssetBundleManager.IsAssetLoadFromResources)
+            {
+                return false;
+            }
+
             base.Update();
 
             if (m_Request != null && m_Request.isDone)
@@ -616,9 +638,20 @@ namespace AssetBundles
             else
                 return true;
         }
+
+        public override bool IsDone()
+        {
+            if (AssetBundleManager.IsAssetLoadFromResources)
+            {
+                return true;
+            }
+
+            return base.IsDone();
+        }
     }
 
-    public class AssetLoadTask<T> where T : Object
+    //Just for inner resource build AssetBundle
+    public class ResourceLoadTask<T> where T : Object
     {
         protected bool mIsDone = false;
         public bool IsDone()
@@ -650,9 +683,9 @@ namespace AssetBundles
         }
 
         // avoid user to use this
-        protected AssetLoadTask() { }
+        protected ResourceLoadTask() { }
 
-        public AssetLoadTask(string path, System.Action<T> callBack = null, string packName = null, bool showDebugString = true)
+        public ResourceLoadTask(string path, System.Action<T> callBack = null, string packName = null, bool showDebugString = true)
         {
             mIsDone = false;
             mPath = path;
@@ -666,9 +699,12 @@ namespace AssetBundles
             if (Application.isPlaying)
             {
                 if (packName == null)
-                    AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadInResourceAssetAsync<T>(mPath, AfterLoad));
+                    AssetBundleManager.sInstance.StartCoroutine(
+                        AssetBundleManager.LoadInResourceAssetAsync<T>(mPath, AfterLoad));
                 else
-                    AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadInResourcePackedAsset<T>(packName, mPath, AfterLoad));
+                {
+                    AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadInResourcePackedAsset<T>("Resources/" + packName, mPath, AfterLoad));
+                }
             }
             else
             {
@@ -693,17 +729,47 @@ namespace AssetBundles
             {
                 if (mResult == null)
                 {
-                    Debug.LogWarning("[AssetLoadTask] Resource at " + mPath + " could not be loaded !!!");
+                    Debug.LogWarning("[ResourceLoadTask] Resource at " + mPath + " could not be loaded !!!");
                 }
                 else
                 {
                     float t = Time.realtimeSinceStartup - mStartLoadTime;
-                    Debug.Log("[AssetLoadTask] Resource at " + mPath + " loaded. [t=" + t + "]");
+                    Debug.Log("[ResourceLoadTask] Resource at " + mPath + " loaded. [t=" + t + "]");
                 }
             }
 #endif
         }
 
+    }
+
+
+    public class LevelLoadTask
+    {
+        protected bool mIsDone;
+        public bool IsDone
+        {
+            get { return mIsDone; }
+        }
+        private AsyncOperation mAsyncOpera;
+        public AsyncOperation AsyncOpera
+        {
+            get { return mAsyncOpera; }
+        }
+        // avoid user to use this
+        private LevelLoadTask() { }
+
+        public LevelLoadTask(string levelName, string packName, bool isAdditive)
+        {
+            mAsyncOpera = null;
+            mIsDone = false;
+            AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadLevel(packName, levelName, isAdditive, AfterLoad));
+        }
+
+        private void AfterLoad(AsyncOperation obj)
+        {
+            mAsyncOpera = obj;
+            mIsDone = true;
+        }
     }
 
 }

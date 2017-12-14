@@ -84,7 +84,7 @@ namespace AssetBundles.AssetBundleHttpUtils
 
         public IEnumerator SendWebRequest()
         {
-            string webUrl = WWW.EscapeURL(mUrl);
+            string webUrl = mUrl.Replace(" ", "%20");
 
             byte[] data = null;
             string error;
@@ -114,7 +114,7 @@ namespace AssetBundles.AssetBundleHttpUtils
 
             if (!string.IsNullOrEmpty(error))
             {
-                Debug.LogError("Url error: " + error);
+                Debug.LogError("Url: " + mUrl + " Error: " + error);
             }
 
             if (onDownLoaded != null)

@@ -14,14 +14,14 @@ namespace AssetBundles
 
         VersionOk,
         GetBundleListOk,
-        DownloadOk,
+        UpdateOk,
         UpdateCompleted,
         AssetBundleInitializeOk,
 
         VersionFailed,
         GetBundleListFailed,
         NeedDownloadNewApp,
-        DownloadFailed
+        UpdateFailed
     }
 
     public class AssetBundleUpdaterResult
@@ -44,6 +44,15 @@ namespace AssetBundles
             return "[AssetBundleUpdaterResult] " + string.Format("Code={0} Message={1} TotalSize={2} AssetBundle={3}",
                        Code, Message, TotalSize, assetBundle);
         }
+
+        public bool IsError
+        {
+            get
+            {
+                return Code == AssetBundleUpdateCode.GetBundleListFailed ||
+                       Code == AssetBundleUpdateCode.UpdateFailed || Code == AssetBundleUpdateCode.VersionFailed;
+            }
+        }
     }
 
     public class AssetBundleUpdater : MonoBehaviour
@@ -52,6 +61,7 @@ namespace AssetBundles
         public bool DownloadToLocal = true;
         public string DownloadUrl;
         public bool IsEncrypt;
+        public bool AsssetBundleOnePackage = true;
         public Action<AssetBundleUpdaterResult> OnResultListener;
         private AssetBundleList mAssetBundleList;
         private AssetBundleUpdateInfo mAssetBundleUpdateInfo;
@@ -94,14 +104,17 @@ namespace AssetBundles
             mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
             mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.UpdateCompleted;
             NotificationLastResult();
-
-            AssetBundleManager.BaseDownloadingURL = !DownloadToLocal ? DownloadUrl : string.Empty;
-            AssetBundleManager.IsAssetBundleEncrypted = IsEncrypt;
             StartCoroutine(AssetBundleInitialize());
         }
 
         private IEnumerator AssetBundleInitialize()
         {
+            AssetBundleManager.BaseDownloadingURL = !DownloadToLocal ? DownloadUrl : string.Empty;
+            AssetBundleManager.IsAssetBundleEncrypted = IsEncrypt;
+            AssetBundleManager.ActiveVariants = mAssetBundleList.AllAssetBundlesWithVariant;
+            AssetBundleManager.IsAssetLoadFromResources =
+                !File.Exists(GetPlatformAssetBundleLocationPath() + "/" + Utility.GetPlatformName());
+
             var operate = AssetBundleManager.Initialize();
             yield return StartCoroutine(operate);
 
@@ -114,8 +127,6 @@ namespace AssetBundles
         {
             if (string.IsNullOrEmpty(error))
             {
-                mAssetBundleUpdateInfo.TargetVersion = mTargetVersion;
-
                 var assetBundleList = new AssetBundleList();
                 assetBundleList.Load(data, IsEncrypt);
 
@@ -137,9 +148,13 @@ namespace AssetBundles
                     mIsNeedUpdate = false;
                     mCanDownload = false;
                 }
-
+                mAssetBundleUpdateInfo.TargetVersion = mTargetVersion;
                 mAssetBundleList = assetBundleList;
                 SaveLocalData();
+                mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
+                mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.VersionOk;
+                NotificationLastResult();
+
                 mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
                 mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.GetBundleListOk;
                 mLastAssetBundleUpdaterResult.TotalSize = mAssetBundleUpdateInfo.GetPendingListTotalSize();
@@ -155,7 +170,7 @@ namespace AssetBundles
         {
             if (result.httpStatusCode != HttpStatusCode.PartialContent)
             {
-                ThrowException(AssetBundleUpdateCode.DownloadFailed, result.message);
+                ThrowException(AssetBundleUpdateCode.UpdateFailed, result.message);
             }
             else if (result.multiRangeCode == MultiRangeCode.OK)
             {
@@ -166,7 +181,7 @@ namespace AssetBundles
             }
             else if (!string.IsNullOrEmpty(result.message) || result.multiRangeCode != MultiRangeCode.OK)
             {
-                ThrowException(AssetBundleUpdateCode.DownloadFailed, result.message);
+                ThrowException(AssetBundleUpdateCode.UpdateFailed, result.message);
             }
         }
 
@@ -198,14 +213,14 @@ namespace AssetBundles
                     }
                     catch (Exception e)
                     {
-                        ThrowException(AssetBundleUpdateCode.DownloadFailed, e.Message);
+                        ThrowException(AssetBundleUpdateCode.UpdateFailed, e.Message);
                         return;
                     }
 
                     mAssetBundleUpdateInfo.PendingList.Remove(assetBundle.AssetBundleName);
 
                     mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-                    mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.DownloadOk;
+                    mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.UpdateOk;
                     mLastAssetBundleUpdaterResult.AssetBundle = assetBundle;
                     NotificationLastResult();
                 }
@@ -326,14 +341,14 @@ namespace AssetBundles
                 {
                     var httpRange = new HttpRange();
                     httpRange.id = assetBundle.AssetBundleName;
-                    httpRange.SetRange(assetBundle.StartOffset, (int) assetBundle.Size);
+                    httpRange.SetRange(AsssetBundleOnePackage ? assetBundle.StartOffset : 0, (int) assetBundle.Size);
                     string targetPath = Path.Combine(GetPlatformAssetBundleLocationPath(), assetBundle.AssetBundleName);
                     if (File.Exists(targetPath))
                     {
                         File.Delete(targetPath);
                     }
                     mNeedDownloadHttpRangeList.Add(httpRange);
-                    if (mNeedDownloadHttpRangeList.Count >= MultiRangeHttpRequest.MAX_HTTP_RANGE_COUNT)
+                    if (mNeedDownloadHttpRangeList.Count >= MultiRangeHttpRequest.MAX_HTTP_RANGE_COUNT || !AsssetBundleOnePackage)
                     {
                         break;
                     }
@@ -368,16 +383,20 @@ namespace AssetBundles
             if (File.Exists(bundleListLocationPath))
             {
                 mAssetBundleList = new AssetBundleList();
-                mAssetBundleList.Load(bundleListLocationPath, IsEncrypt);
+                mAssetBundleList.Load(GetPlatformAssetBundleLocationPath(), IsEncrypt);
             }
 
             if (mAssetBundleList == null)
             {
-                var bundleList = Resources.Load(GetLocalAssetsInfoPath() + AssetBundleList.FILE_NAME) as TextAsset;
+                var bundleList = Resources.Load(GetLocalAssetsInfoPath() + Path.GetFileNameWithoutExtension(AssetBundleList.FILE_NAME)) as TextAsset;
                 if (bundleList != null)
                 {
                     mAssetBundleList = new AssetBundleList();
                     mAssetBundleList.Load(bundleList.bytes, IsEncrypt);
+                }
+                else
+                {
+                    mAssetBundleList = new AssetBundleList();
                 }
             }
         }
@@ -393,7 +412,7 @@ namespace AssetBundles
             mNeedClearOldData = false;
 
             var localVersion = new AssetBundleVersionInfo();
-            var asset = Resources.Load(GetLocalAssetsInfoPath() + AssetBundleVersionInfo.FILE_NAME) as TextAsset;
+            var asset = Resources.Load(GetLocalAssetsInfoPath() + Path.GetFileNameWithoutExtension(AssetBundleVersionInfo.FILE_NAME)) as TextAsset;
             if (asset != null)
             {
                 localVersion.Load(asset.bytes, IsEncrypt);
@@ -403,7 +422,7 @@ namespace AssetBundles
             if (File.Exists(updateInfoPath))
             {
                 mAssetBundleUpdateInfo = new AssetBundleUpdateInfo();
-                mAssetBundleUpdateInfo.Load(updateInfoPath, IsEncrypt);
+                mAssetBundleUpdateInfo.Load(GetPlatformAssetBundleLocationPath(), IsEncrypt);
 
                 if (mAssetBundleUpdateInfo != null)
                 {
@@ -446,8 +465,7 @@ namespace AssetBundles
         {
             if (mAssetBundleList != null)
             {
-                string path = GetPlatformAssetBundleListLocationPath();
-                mAssetBundleList.Save(path, IsEncrypt);
+                mAssetBundleList.Save(GetPlatformAssetBundleLocationPath(), IsEncrypt);
 #if UNITY_IPHONE
             UnityEngine.iOS.Device.SetNoBackupFlag(path);
 #endif
@@ -458,8 +476,7 @@ namespace AssetBundles
         {
             if (mAssetBundleUpdateInfo != null)
             {
-                string path = GetPlatformAssetBundleUpdateInfoPath();
-                mAssetBundleUpdateInfo.Save(path, IsEncrypt);
+                mAssetBundleUpdateInfo.Save(GetPlatformAssetBundleLocationPath(), IsEncrypt);
 #if UNITY_IPHONE
             UnityEngine.iOS.Device.SetNoBackupFlag(path);
 #endif
@@ -510,8 +527,16 @@ namespace AssetBundles
                     mMultiRangeDownloader = new MultiRangeDownloader();
                 }
 
-                StartCoroutine(mMultiRangeDownloader.DownloadData(DownloadUrl + Utility.GetPackPlatfomrName(),
-                    mNeedDownloadHttpRangeList, DownloadUnfinishedCallBack, DownloadResult));
+                if (AsssetBundleOnePackage)
+                {
+                    StartCoroutine(mMultiRangeDownloader.DownloadData(DownloadUrl + "/" + Utility.GetPackPlatfomrName(),
+                        mNeedDownloadHttpRangeList, DownloadUnfinishedCallBack, DownloadResult));
+                }
+                else
+                {
+                    StartCoroutine(mMultiRangeDownloader.DownloadData(DownloadUrl + "/" + mNeedDownloadHttpRangeList[0].id,
+                        mNeedDownloadHttpRangeList, DownloadUnfinishedCallBack, DownloadResult));
+                }
             }
         }
 
@@ -520,7 +545,7 @@ namespace AssetBundles
             if (AssetBundleVersionInfo.Compare(mAssetBundleUpdateInfo.TargetVersion, version) < 0)
             {
                 mTargetVersion = version;
-                var downloader = new Downloader(DownloadUrl + AssetBundleList.FILE_NAME, CollectUpdateResourceList);
+                var downloader = new Downloader(DownloadUrl + "/" + AssetBundleList.FILE_NAME, CollectUpdateResourceList);
                 StartCoroutine(downloader.SendWebRequest());
             }
             else

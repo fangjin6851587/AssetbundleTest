@@ -116,7 +116,7 @@ namespace AssetBundles
         static Dictionary<string, string[]> m_Dependencies = new Dictionary<string, string[]>();
         private static bool m_IsAssetBundleEncrypted;
         private static AssetBundleManager s_AssetsManager = null;
-
+        static WaitForEndOfFrame s_EndOfFrame = new WaitForEndOfFrame();
 
         public static LogMode logMode
         {
@@ -165,6 +165,8 @@ namespace AssetBundles
             set { m_IsAssetBundleEncrypted = value; }
             get { return m_IsAssetBundleEncrypted; }
         }
+
+        public static bool IsAssetLoadFromResources { get; set; }
 
         private static void Log(LogType logType, string text)
         {
@@ -358,7 +360,17 @@ namespace AssetBundles
                 SetSourceAssetBundleURL(Application.persistentDataPath);
             }
 
-            LoadAssetBundle(manifestAssetBundleName, true);
+            if (!IsAssetLoadFromResources)
+            {
+                LoadAssetBundle(manifestAssetBundleName, true);
+            }
+
+#if UNITY_EDITOR
+            Log(LogType.Info, "BaseDownloadingURL: " + m_BaseDownloadingURL);
+            Log(LogType.Info, "Assets Load from resources: " + (IsAssetLoadFromResources ? "True" : "False"));
+            Log(LogType.Info, "AssetBundle encrypted: " + (IsAssetBundleEncrypted ? "True" : "False"));
+#endif
+
             var operation = new AssetBundleLoadManifestOperation(manifestAssetBundleName, "AssetBundleManifest", typeof(AssetBundleManifest));
             m_InProgressOperations.Add(operation);
             return operation;
@@ -705,7 +717,7 @@ namespace AssetBundles
             {
                 assetBundleName = RemapVariantName(assetBundleName);
                 LoadAssetBundle(assetBundleName);
-                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileNameWithoutExtension(resourcePath), typeof(T));
+                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, resourcePath, typeof(T));
             }
 
             m_InProgressOperations.Add(operation);
@@ -725,13 +737,13 @@ namespace AssetBundles
             AssetBundleLoadAssetOperation operation;
             if (m_AssetBundleManifest == null || string.IsNullOrEmpty(m_AssetBundleManifest.GetAllAssetBundles().FirstOrDefault(s => s == assetBundleName)))
             {
-                operation = new ResourceLoadAssetOperationFull(resourcePath);
+                operation = new ResourceLoadAssetOperationFull(assetBundleName.Substring(10) + "/" + resourcePath);
             }
             else
             {
                 assetBundleName = RemapVariantName(assetBundleName);
                 LoadAssetBundle(assetBundleName);
-                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileNameWithoutExtension(resourcePath), typeof(T));
+                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, resourcePath, typeof(T));
             }
             m_InProgressOperations.Add(operation);
 
@@ -813,14 +825,50 @@ namespace AssetBundles
             else
 #endif
             {
-                assetBundleName = RemapVariantName(assetBundleName);
-                LoadAssetBundle(assetBundleName);
-                operation = new AssetBundleLoadLevelOperation(assetBundleName, levelName, isAdditive);
+                if (m_AssetBundleManifest == null)
+                {
+                    operation = new AssetBundleLoadLevelOperation(string.Empty, levelName, isAdditive);
+                }
+                else
+                {
+                    assetBundleName = RemapVariantName(assetBundleName);
+                    LoadAssetBundle(assetBundleName);
+                    operation = new AssetBundleLoadLevelOperation(assetBundleName, levelName, isAdditive);
+                }
 
                 m_InProgressOperations.Add(operation);
             }
 
             return operation;
         }
+
+        static public IEnumerator LoadLevel(string assetBundleName, string levelName, bool isAdditive, System.Action<AsyncOperation> callback)
+        {
+            IGetAsyncOperation asyncOperation;
+
+#if UNITY_EDITOR
+            if (SimulateAssetBundleInEditor)
+            {
+                asyncOperation =
+                    LoadLevelAsync(assetBundleName, levelName, isAdditive) as AssetBundleLoadLevelSimulationOperation;
+            }
+            else
+#endif
+            {
+                asyncOperation =
+                    LoadLevelAsync(assetBundleName, levelName, isAdditive) as AssetBundleLoadLevelOperation;
+            }
+
+            while (asyncOperation.GetAsyncOperation() == null && !asyncOperation.IsDone())
+            {
+                yield return s_EndOfFrame;
+            }
+
+            if (callback != null)
+            {
+                callback(asyncOperation.GetAsyncOperation());
+            }
+        }
+
     } // End of AssetBundleManager.
 }

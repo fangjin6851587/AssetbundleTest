@@ -62,7 +62,7 @@ namespace AssetBundles
 
         public static string GetPackPlatfomrName()
         {
-            return "AssetBundle_" + GetPlatformName() + ".byte";
+            return "AssetBundle_" + GetPlatformName() + ".bytes";
         }
 
 #if UNITY_EDITOR
