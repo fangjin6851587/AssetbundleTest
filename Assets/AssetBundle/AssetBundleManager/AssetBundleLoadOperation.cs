@@ -662,9 +662,10 @@ namespace AssetBundles
         protected System.Action<T> mCallBack;
         protected string mPath;
         protected T mResult;
-        protected bool mShowDebugString;
 
+#if UNITY_EDITOR
         protected float mStartLoadTime;
+#endif
 
         public Object Resource
         {
@@ -685,12 +686,11 @@ namespace AssetBundles
         // avoid user to use this
         protected ResourceLoadTask() { }
 
-        public ResourceLoadTask(string path, System.Action<T> callBack = null, string packName = null, bool showDebugString = true)
+        public ResourceLoadTask(string path, System.Action<T> callBack = null, string packName = null)
         {
             mIsDone = false;
             mPath = path;
             mCallBack = callBack;
-            mShowDebugString = showDebugString;
 
 #if UNITY_EDITOR
             mStartLoadTime = Time.realtimeSinceStartup;
@@ -725,17 +725,14 @@ namespace AssetBundles
         protected void CheckResource()
         {
 #if UNITY_EDITOR
-            if (mShowDebugString)
+            if (mResult == null)
             {
-                if (mResult == null)
-                {
-                    Debug.LogWarning("[ResourceLoadTask] Resource at " + mPath + " could not be loaded !!!");
-                }
-                else
-                {
-                    float t = Time.realtimeSinceStartup - mStartLoadTime;
-                    Debug.Log("[ResourceLoadTask] Resource at " + mPath + " loaded. [t=" + t + "]");
-                }
+                Debug.LogWarning("[ResourceLoadTask] Resource at " + mPath + " could not be loaded !!!");
+            }
+            else
+            {
+                float t = Time.realtimeSinceStartup - mStartLoadTime;
+                Debug.Log("[ResourceLoadTask] Resource at " + mPath + " loaded. [t=" + t + "]");
             }
 #endif
         }
@@ -746,6 +743,12 @@ namespace AssetBundles
     public class LevelLoadTask
     {
         protected bool mIsDone;
+
+#if UNITY_EDITOR
+        protected float mStartLoadTime;
+        protected string mLevelName;
+#endif
+
         public bool IsDone
         {
             get { return mIsDone; }
@@ -763,12 +766,22 @@ namespace AssetBundles
             mAsyncOpera = null;
             mIsDone = false;
             AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadLevel(packName, levelName, isAdditive, AfterLoad));
+
+#if UNITY_EDITOR
+            mStartLoadTime = Time.realtimeSinceStartup;
+            mLevelName = levelName;
+#endif
         }
 
         private void AfterLoad(AsyncOperation obj)
         {
             mAsyncOpera = obj;
             mIsDone = true;
+
+#if UNITY_EDITOR
+            float t = Time.realtimeSinceStartup - mStartLoadTime;
+            Debug.Log("[LevelLoadTask] " + mLevelName + " level loaded. [t=" + t + "]");
+#endif
         }
     }
 
