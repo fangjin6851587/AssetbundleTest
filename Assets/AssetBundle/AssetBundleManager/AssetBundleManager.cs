@@ -117,6 +117,8 @@ namespace AssetBundles
         private static bool m_IsAssetBundleEncrypted;
         private static AssetBundleManager s_AssetsManager = null;
         static WaitForEndOfFrame s_EndOfFrame = new WaitForEndOfFrame();
+        static string[] m_AllAssetBundles = new string[0];
+        static string[] m_AllVariants = new string[0];
 
         public static LogMode logMode
         {
@@ -157,7 +159,16 @@ namespace AssetBundles
         /// </summary>
         public static AssetBundleManifest AssetBundleManifestObject
         {
-            set { m_AssetBundleManifest = value; }
+
+            set
+            {
+                m_AssetBundleManifest = value;
+                if (m_AssetBundleManifest != null)
+                {
+                    m_AllAssetBundles = m_AssetBundleManifest.GetAllAssetBundles();
+                    m_AllVariants = m_AssetBundleManifest.GetAllAssetBundlesWithVariant();
+                }
+            }
         }
 
         public static bool IsAssetBundleEncrypted
@@ -450,7 +461,7 @@ namespace AssetBundles
         // Remaps the asset bundle name to the best fitting asset bundle variant.
         static protected string RemapVariantName(string assetBundleName)
         {
-            string[] bundlesWithVariant = m_AssetBundleManifest.GetAllAssetBundlesWithVariant();
+            string[] bundlesWithVariant = m_AllVariants;
 
             // Get base bundle name
             string baseName = assetBundleName.Split('.')[0];
@@ -707,7 +718,8 @@ namespace AssetBundles
 
         static public IEnumerator LoadInResourceAssetAsync<T>(string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
         {
-            AssetBundleLoadAssetOperation operation;
+            AssetBundleLoadAssetOperation operation = null;
+
             string assetBundleName = GetInResourceAssetBundleName(resourcePath);
             if (string.IsNullOrEmpty(assetBundleName))
             {
@@ -733,7 +745,7 @@ namespace AssetBundles
         static public IEnumerator LoadInResourcePackedAsset<T>(string assetBundleName, string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
         {
             AssetBundleLoadAssetOperation operation;
-            if (m_AssetBundleManifest == null || string.IsNullOrEmpty(m_AssetBundleManifest.GetAllAssetBundles().FirstOrDefault(s => s == assetBundleName)))
+            if (m_AssetBundleManifest == null || string.IsNullOrEmpty(m_AllAssetBundles.FirstOrDefault(s => s == assetBundleName)))
             {
                 operation = new ResourceLoadAssetOperationFull(resourcePath);
             }
@@ -753,6 +765,7 @@ namespace AssetBundles
             }
         }
 
+
         static string GetInResourceAssetBundleName(string resourcePath)
         {
             if (m_AssetBundleManifest == null)
@@ -760,7 +773,7 @@ namespace AssetBundles
                 return null;
             }
 
-            foreach (var assetBundle in m_AssetBundleManifest.GetAllAssetBundles())
+            foreach (var assetBundle in m_AllAssetBundles)
             {
                 if (assetBundle.EndsWith(resourcePath, StringComparison.OrdinalIgnoreCase) && assetBundle.Contains("resources/"))
                 {
@@ -881,6 +894,7 @@ namespace AssetBundles
                 callback(asyncOperation.GetAsyncOperation());
             }
         }
+
 
         /// <summary>
         /// 创建加载Assets目录下资源任务(不包括Resources目录).
