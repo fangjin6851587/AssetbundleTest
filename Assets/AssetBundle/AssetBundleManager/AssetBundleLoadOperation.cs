@@ -10,6 +10,7 @@ using UnityEngine.Networking;
 using UnityEngine.iOS;
 #endif
 using System.Collections;
+using System.IO;
 using Object = UnityEngine.Object;
 
 namespace AssetBundles
@@ -630,13 +631,13 @@ namespace AssetBundles
 
             base.Update();
 
-            if (m_Request != null && m_Request.isDone)
+            if (m_Request == null || !m_Request.isDone)
             {
-                AssetBundleManager.AssetBundleManifestObject = GetAsset<AssetBundleManifest>();
-                return false;
-            }
-            else
                 return true;
+            }
+
+            AssetBundleManager.AssetBundleManifestObject = GetAsset<AssetBundleManifest>();
+            return false;
         }
 
         public override bool IsDone()
@@ -667,7 +668,7 @@ namespace AssetBundles
         protected float mStartLoadTime;
 #endif
 
-        public Object Resource
+        public T Resource
         {
             get { return mResult; }
         }
@@ -676,7 +677,7 @@ namespace AssetBundles
         {
             get
             {
-                if (IsDone())
+                if (IsDone() && mResult != null)
                     return Object.Instantiate(mResult);
 
                 return null;
@@ -686,7 +687,7 @@ namespace AssetBundles
         // avoid user to use this
         protected ResourceLoadTask() { }
 
-        public ResourceLoadTask(string path, System.Action<T> callBack = null, string packName = null)
+        public ResourceLoadTask(string path, System.Action<T> callBack = null, bool inPack = false)
         {
             mIsDone = false;
             mPath = path;
@@ -698,12 +699,15 @@ namespace AssetBundles
 
             if (Application.isPlaying)
             {
-                if (packName == null)
-                    AssetBundleManager.sInstance.StartCoroutine(
-                        AssetBundleManager.LoadInResourceAssetAsync<T>(mPath, AfterLoad));
+                if (inPack)
+                {
+                    string assetBundleName = Path.GetDirectoryName("Resources/" + mPath);
+                    AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadInResourcePackedAsset<T>(assetBundleName, mPath, AfterLoad));
+                }
                 else
                 {
-                    AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadInResourcePackedAsset<T>("Resources/" + packName, mPath, AfterLoad));
+                    AssetBundleManager.sInstance.StartCoroutine(
+                        AssetBundleManager.LoadInResourceAssetAsync<T>(mPath, AfterLoad));
                 }
             }
             else
@@ -746,7 +750,7 @@ namespace AssetBundles
 
 #if UNITY_EDITOR
         protected float mStartLoadTime;
-        protected string mLevelName;
+        protected string mPath;
 #endif
 
         public bool IsDone
@@ -761,15 +765,21 @@ namespace AssetBundles
         // avoid user to use this
         private LevelLoadTask() { }
 
-        public LevelLoadTask(string levelName, string packName, bool isAdditive)
+        public LevelLoadTask(string path, bool isAdditive, bool inPack = false)
         {
             mAsyncOpera = null;
             mIsDone = false;
-            AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadLevel(packName, levelName, isAdditive, AfterLoad));
+
+            string assetBundleName = string.Empty;
+            if (inPack)
+            {
+                assetBundleName = Path.GetDirectoryName(path);
+            }
+            AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadLevel(assetBundleName, path, isAdditive, AfterLoad));
 
 #if UNITY_EDITOR
             mStartLoadTime = Time.realtimeSinceStartup;
-            mLevelName = levelName;
+            mPath = path;
 #endif
         }
 
@@ -780,7 +790,7 @@ namespace AssetBundles
 
 #if UNITY_EDITOR
             float t = Time.realtimeSinceStartup - mStartLoadTime;
-            Debug.Log("[LevelLoadTask] " + mLevelName + " level loaded. [t=" + t + "]");
+            Debug.Log("[LevelLoadTask] " + mPath + " level loaded. [t=" + t + "]");
 #endif
         }
     }

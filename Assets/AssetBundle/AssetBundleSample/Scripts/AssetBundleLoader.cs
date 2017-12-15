@@ -9,6 +9,8 @@ public class AssetBundleLoader : MonoBehaviour
 
     public AssetBundleUpdater Updater;
     private bool mIsError;
+    private bool mInited;
+    private GameObject mGameObject;
 
     void Start()
     {
@@ -21,9 +23,7 @@ public class AssetBundleLoader : MonoBehaviour
         AssetBundleUpdateCode code = assetBundleUpdaterResult.Code;
         if (code == AssetBundleUpdateCode.AssetBundleInitializeOk)
         {
-            new ResourceLoadTask<GameObject>("MyCube", OnAssetLoaded, "AssetBundles");
-            //new ResourceLoadTask<GameObject>("AssetBundles/MyCube", OnAssetLoaded);
-            new LevelLoadTask("Test", "AssetBundle/AssetBundleSample/Scene", true);
+            mInited = true;
         }
         else if (code == AssetBundleUpdateCode.VersionOk)
         {
@@ -36,7 +36,7 @@ public class AssetBundleLoader : MonoBehaviour
     {
         if (gameObject != null)
         {
-            Instantiate(gameObject);
+            mGameObject = Instantiate(gameObject);
         }
     }
 
@@ -48,6 +48,34 @@ public class AssetBundleLoader : MonoBehaviour
             {
                 Updater.RetryFromError();
             }
+        }
+
+        if (mInited)
+        {
+            if (GUI.Button(new Rect(50, 135, 200, 80), "Load Asset"))
+            {
+                DestroyGameObject();
+                AssetBundleManager.CreateResourceLoadTask<GameObject>("AssetBundles/MyCube", OnAssetLoaded);
+            }
+            if (GUI.Button(new Rect(50, 220, 200, 80), "Load Asset From Package"))
+            {
+                DestroyGameObject();
+                AssetBundleManager.CreateResourceLoadTask<GameObject>("AssetBundles/MyCube", OnAssetLoaded, true);
+
+            }
+            if (GUI.Button(new Rect(50, 305, 200, 80), "Load Level"))
+            {
+                DestroyGameObject();
+                AssetBundleManager.CreateLevelLoadTask("AssetBundle/AssetBundleSample/Scene/Test", true, true);
+            }
+        }
+    }
+
+    void DestroyGameObject()
+    {
+        if (mGameObject != null)
+        {
+            Destroy(mGameObject);
         }
     }
 }

@@ -698,7 +698,7 @@ namespace AssetBundles
             else
             {
                 string msg = string.Format("Failed downloading bundle {0} from {1}: {2}",
-                        download.assetBundleName, download.GetSourceURL(), download.error);
+                    download.assetBundleName, download.GetSourceURL(), download.error);
                 m_DownloadingErrors.Add(download.assetBundleName, msg);
             }
 
@@ -708,7 +708,7 @@ namespace AssetBundles
         static public IEnumerator LoadInResourceAssetAsync<T>(string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
         {
             AssetBundleLoadAssetOperation operation;
-            string assetBundleName = GetAssetBundleName(resourcePath);
+            string assetBundleName = GetInResourceAssetBundleName(resourcePath);
             if (string.IsNullOrEmpty(assetBundleName))
             {
                 operation = new ResourceLoadAssetOperationFull(resourcePath);
@@ -717,7 +717,7 @@ namespace AssetBundles
             {
                 assetBundleName = RemapVariantName(assetBundleName);
                 LoadAssetBundle(assetBundleName);
-                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, resourcePath, typeof(T));
+                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath), typeof(T));
             }
 
             m_InProgressOperations.Add(operation);
@@ -733,17 +733,16 @@ namespace AssetBundles
         static public IEnumerator LoadInResourcePackedAsset<T>(string assetBundleName, string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
         {
             assetBundleName = assetBundleName.ToLower();
-
             AssetBundleLoadAssetOperation operation;
             if (m_AssetBundleManifest == null || string.IsNullOrEmpty(m_AssetBundleManifest.GetAllAssetBundles().FirstOrDefault(s => s == assetBundleName)))
             {
-                operation = new ResourceLoadAssetOperationFull(assetBundleName.Substring(10) + "/" + resourcePath);
+                operation = new ResourceLoadAssetOperationFull(resourcePath);
             }
             else
             {
                 assetBundleName = RemapVariantName(assetBundleName);
                 LoadAssetBundle(assetBundleName);
-                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, resourcePath, typeof(T));
+                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath), typeof(T));
             }
             m_InProgressOperations.Add(operation);
 
@@ -755,7 +754,7 @@ namespace AssetBundles
             }
         }
 
-        static string GetAssetBundleName(string resourcePath)
+        static string GetInResourceAssetBundleName(string resourcePath)
         {
             if (m_AssetBundleManifest == null)
             {
@@ -764,7 +763,7 @@ namespace AssetBundles
 
             foreach (var assetBundle in m_AssetBundleManifest.GetAllAssetBundles())
             {
-                if (assetBundle.EndsWith(resourcePath))
+                if (assetBundle.EndsWith(resourcePath, StringComparison.OrdinalIgnoreCase) && assetBundle.Contains("resources/"))
                 {
                     return assetBundle;
                 }
@@ -831,8 +830,11 @@ namespace AssetBundles
                 }
                 else
                 {
-                    assetBundleName = RemapVariantName(assetBundleName);
-                    LoadAssetBundle(assetBundleName);
+                    if (!string.IsNullOrEmpty(assetBundleName))
+                    {
+                        assetBundleName = RemapVariantName(assetBundleName);
+                        LoadAssetBundle(assetBundleName);
+                    }
                     operation = new AssetBundleLoadLevelOperation(assetBundleName, levelName, isAdditive);
                 }
 
@@ -842,7 +844,7 @@ namespace AssetBundles
             return operation;
         }
 
-        static public IEnumerator LoadLevel(string assetBundleName, string levelName, bool isAdditive, System.Action<AsyncOperation> callback)
+        static public IEnumerator LoadLevel(string assetBundleName, string path, bool isAdditive, System.Action<AsyncOperation> callback)
         {
             IGetAsyncOperation asyncOperation;
 
@@ -850,13 +852,13 @@ namespace AssetBundles
             if (SimulateAssetBundleInEditor)
             {
                 asyncOperation =
-                    LoadLevelAsync(assetBundleName, levelName, isAdditive) as AssetBundleLoadLevelSimulationOperation;
+                    LoadLevelAsync(path, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelSimulationOperation;
             }
             else
 #endif
             {
                 asyncOperation =
-                    LoadLevelAsync(assetBundleName, levelName, isAdditive) as AssetBundleLoadLevelOperation;
+                    LoadLevelAsync(assetBundleName, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelOperation;
             }
 
             while (asyncOperation.GetAsyncOperation() == null && !asyncOperation.IsDone())
@@ -868,6 +870,31 @@ namespace AssetBundles
             {
                 callback(asyncOperation.GetAsyncOperation());
             }
+        }
+
+        /// <summary>
+        /// 创建加载Resources目录下资源任务.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="path">Resource目录下相对路径</param>
+        /// <param name="callBack">资源加载完成回调</param>
+        /// <param name="inPack">多个资源打包成一个AssetBundle文件</param>
+        /// <returns></returns>
+        public static ResourceLoadTask<T> CreateResourceLoadTask<T>(string path, System.Action<T> callBack = null, bool inPack = false) where T : UnityEngine.Object
+        {
+            return new ResourceLoadTask<T>(path, callBack, inPack);
+        }
+
+        /// <summary>
+        /// 创建加载场景任务.
+        /// </summary>
+        /// <param name="path">场景路径</param>
+        /// <param name="isAdditive">附加场景</param>
+        /// <param name="inPack">多个场景打包成一个AssetBundle文件</param>
+        /// <returns></returns>
+        public static LevelLoadTask CreateLevelLoadTask(string path, bool isAdditive, bool inPack = false)
+        {
+            return new LevelLoadTask(path, isAdditive, inPack);
         }
 
     } // End of AssetBundleManager.

@@ -234,8 +234,17 @@ namespace AssetBundleBrowser
                         if (string.IsNullOrEmpty(buildFolder.AssetBundleName))
                         {
                             buildFolder.AssetBundleName = buildFolder.Path.Substring(7);
+                            int resourceIndex = buildFolder.AssetBundleName.IndexOf("Resources/");
+                            if (resourceIndex >= 0)
+                            {
+                                buildFolder.AssetBundleName = buildFolder.AssetBundleName.Substring(resourceIndex);
+                            }
                         }
                         EditorGUILayout.LabelField("AssetBundle Name:", buildFolder.AssetBundleName);
+                    }
+                    else
+                    {
+                        buildFolder.AssetBundleName = string.Empty;
                     }
                     buildFolder.VariantType = EditorGUILayout.TextField("AssetBundle Variant", buildFolder.VariantType);
                     if (GUILayout.Button("-", GUILayout.MaxWidth(30)))

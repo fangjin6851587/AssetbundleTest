@@ -97,7 +97,7 @@ namespace AssetBundleBrowser
 
                                 if (dependencySize > 0)
                                 {
-                                    foldout.DependenciesFoldout = EditorGUILayout.Foldout(foldout.DependenciesFoldout, "AssetBundleList");
+                                    foldout.DependenciesFoldout = EditorGUILayout.Foldout(foldout.DependenciesFoldout, "Dependencies");
                                     if (foldout.DependenciesFoldout)
                                     {
                                         EditorGUI.indentLevel = 3;
