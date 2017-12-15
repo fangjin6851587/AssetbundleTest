@@ -30,7 +30,6 @@ namespace AssetBundleBrowser
         private SingleBundleInspector m_SingleInspector;
         private InspectVersion m_VersionInspector;
         private InspectAssetBundleList m_BundleListInspector;
-        private bool m_IsEncrypt;
 
         /// <summary>
         /// Collection of loaded asset bundle records indexed by bundle name
@@ -148,8 +147,6 @@ namespace AssetBundleBrowser
                 BrowseForFolder();
             }
 
-            m_IsEncrypt = EditorGUILayout.Toggle("Encrypted", m_IsEncrypt);
-
             GUILayout.EndHorizontal();
             EditorGUILayout.Space();
 
@@ -191,8 +188,6 @@ namespace AssetBundleBrowser
                 if (newPath.StartsWith(gamePath))
                     newPath = newPath.Remove(0, gamePath.Length + 1);
 
-                m_IsEncrypt = EditorUtility.DisplayDialog("Folder Encrypted", "Is Folder Encrypted", "Yes", "No");
-
                 m_Data.AddPath(newPath);
 
                 RefreshBundles();
@@ -210,7 +205,6 @@ namespace AssetBundleBrowser
                 if (folderPath.StartsWith(gamePath))
                     folderPath = folderPath.Remove(0, gamePath.Length + 1);
 
-                m_IsEncrypt = EditorUtility.DisplayDialog("Folder Encrypted", "Is Folder Encrypted", "Yes", "No");
                 AddBundleFolder(folderPath);
                 RefreshBundles();
             }
@@ -345,13 +339,28 @@ namespace AssetBundleBrowser
                 if (selected[0].displayName.EndsWith(AssetBundleVersionInfo.FILE_NAME))
                 {
                     AssetBundleVersionInfo version = new AssetBundleVersionInfo();
-                    version.Load(selected[0].bundlePath.Replace(AssetBundleVersionInfo.FILE_NAME, ""), m_IsEncrypt);
+
+                    try
+                    {
+                        version.Load(selected[0].bundlePath.Replace(AssetBundleVersionInfo.FILE_NAME, ""), false);
+                    }
+                    catch
+                    {
+                        version.Load(selected[0].bundlePath.Replace(AssetBundleVersionInfo.FILE_NAME, ""), true);
+                    }
                     m_VersionInspector.SetVersion(version);
                 }
                 else if (selected[0].displayName.EndsWith(AssetBundleList.FILE_NAME))
                 {
                     AssetBundleList bundleList = new AssetBundleList();
-                    bundleList.Load(selected[0].bundlePath.Replace(AssetBundleList.FILE_NAME, ""), m_IsEncrypt);
+                    try
+                    {
+                        bundleList.Load(selected[0].bundlePath.Replace(AssetBundleList.FILE_NAME, ""), false);
+                    }
+                    catch
+                    {
+                        bundleList.Load(selected[0].bundlePath.Replace(AssetBundleList.FILE_NAME, ""), true);
+                    }
                     m_BundleListInspector.SetBundleList(bundleList);
                 }
                 else
@@ -363,15 +372,6 @@ namespace AssetBundleBrowser
             else
             {
                 m_SingleInspector.SetBundle(null);
-
-                //perhaps there should be a way to set a message in the inspector, to tell it...
-                //var style = GUI.skin.label;
-                //style.alignment = TextAnchor.MiddleCenter;
-                //style.wordWrap = true;
-                //GUI.Label(
-                //    inspectorRect,
-                //    new GUIContent("Multi-select inspection not supported"),
-                //    style);
             }
         }
 
@@ -499,31 +499,30 @@ namespace AssetBundleBrowser
             if (null == bundle)
             {
                 // Load the bundle
-
-                if (m_IsEncrypt)
+                byte[] buffer;
+                using (var fs = new FileStream(path, FileMode.Open))
                 {
-                    byte[] buffer;
-                    using (var fs = new FileStream(path, FileMode.Open))
-                    {
-                        buffer = new byte[fs.Length];
-                        fs.Read(buffer, 0, buffer.Length);
-                    }
+                    buffer = new byte[fs.Length];
+                    fs.Read(buffer, 0, buffer.Length);
+                }
 
 
-                    try
+                try
+                {
+                    bundle = AssetBundle.LoadFromMemory(Crypto.AesDecryptBytes(buffer));
+                }
+                catch (Exception)
+                {
+                    bundle = null;
+                }
+                finally
+                {
+                    if (bundle == null)
                     {
-                        bundle = AssetBundle.LoadFromMemory(Crypto.AesDecryptBytes(buffer));
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError(e.Message);
-                        bundle = null;
+                        bundle = AssetBundle.LoadFromFile(path);
                     }
                 }
-                else
-                {
-                    bundle = AssetBundle.LoadFromFile(path);
-                }
+
 
                 if (null == bundle)
                 {

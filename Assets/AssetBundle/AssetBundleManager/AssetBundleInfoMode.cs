@@ -30,14 +30,21 @@ namespace AssetBundles
 
         public virtual void Load(byte[] buffer, bool isEncrypt)
         {
-            if (isEncrypt)
+            try
             {
-                buffer = Crypto.AesDecryptBytes(buffer);
+                if (isEncrypt)
+                {
+                    buffer = Crypto.AesDecryptBytes(buffer);
+                }
+                using (var m = new MemoryStream(buffer))
+                {
+                    var bf = new BinaryFormatter();
+                    SetData(bf.Deserialize(m));
+                }
             }
-            using (var m = new MemoryStream(buffer))
+            catch
             {
-                var bf = new BinaryFormatter();
-                SetData(bf.Deserialize(m));
+                throw;
             }
         }
 
