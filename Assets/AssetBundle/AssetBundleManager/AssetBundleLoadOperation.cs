@@ -11,7 +11,6 @@ using UnityEngine.iOS;
 #endif
 using System.Collections;
 using System.IO;
-using UnityEditor;
 using Object = UnityEngine.Object;
 
 namespace AssetBundles
@@ -711,7 +710,7 @@ namespace AssetBundles
             else
             {
 #if UNITY_EDITOR
-                var obj = AssetDatabase.LoadAssetAtPath<T>(path);
+                var obj = UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
                 AfterLoad(obj);
 #endif
             }
