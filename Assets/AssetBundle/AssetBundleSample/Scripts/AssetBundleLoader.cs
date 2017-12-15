@@ -52,12 +52,18 @@ public class AssetBundleLoader : MonoBehaviour
 
         if (mInited)
         {
-            if (GUI.Button(new Rect(50, 135, 200, 80), "Load Asset"))
+            if (GUI.Button(new Rect(50, 50, 200, 80), "Load Asset"))
+            {
+                DestroyGameObject();
+                AssetBundleManager.CreateAssetLoadTask<GameObject>("AssetBundle/AssetBundleSample/AssetBundle/MyCube", OnAssetLoaded);
+            }
+
+            if (GUI.Button(new Rect(50, 135, 200, 80), "Load Resource"))
             {
                 DestroyGameObject();
                 AssetBundleManager.CreateResourceLoadTask<GameObject>("AssetBundles/MyCube", OnAssetLoaded);
             }
-            if (GUI.Button(new Rect(50, 220, 200, 80), "Load Asset From Package"))
+            if (GUI.Button(new Rect(50, 220, 200, 80), "Load Resource From Package"))
             {
                 DestroyGameObject();
                 AssetBundleManager.CreateResourceLoadTask<GameObject>("AssetBundles/MyCube", OnAssetLoaded, true);

@@ -11,6 +11,7 @@ using UnityEngine.iOS;
 #endif
 using System.Collections;
 using System.IO;
+using UnityEditor;
 using Object = UnityEngine.Object;
 
 namespace AssetBundles
@@ -652,6 +653,98 @@ namespace AssetBundles
     }
 
     //Just for inner resource build AssetBundle
+    public class AssetLoadTask<T> where T : Object
+    {
+        protected bool mIsDone = false;
+        public bool IsDone()
+        {
+            return mIsDone;
+        }
+
+        protected System.Action<T> mCallBack;
+        protected string mPath;
+        protected T mResult;
+
+#if UNITY_EDITOR
+        protected float mStartLoadTime;
+#endif
+
+        public T Asset
+        {
+            get { return mResult; }
+        }
+
+        public T InstantiatedAsset
+        {
+            get
+            {
+                if (IsDone() && mResult != null)
+                    return Object.Instantiate(mResult);
+
+                return null;
+            }
+        }
+
+        // avoid user to use this
+        protected AssetLoadTask() { }
+
+        public AssetLoadTask(string path, System.Action<T> callBack = null, bool inPack = false)
+        {
+            mIsDone = false;
+            mPath = path;
+            mCallBack = callBack;
+
+#if UNITY_EDITOR
+            mStartLoadTime = Time.realtimeSinceStartup;
+#endif
+
+            if (Application.isPlaying)
+            {
+                string assetBundleName = path;
+                if (inPack)
+                {
+                    assetBundleName = Path.GetDirectoryName(mPath);
+                }
+                AssetBundleManager.sInstance.StartCoroutine(
+                    AssetBundleManager.LoadAssetAsync<T>(assetBundleName.ToLower(), Path.GetFileName(mPath), AfterLoad));
+            }
+            else
+            {
+#if UNITY_EDITOR
+                var obj = AssetDatabase.LoadAssetAtPath<T>(path);
+                AfterLoad(obj);
+#endif
+            }
+        }
+
+        protected virtual void AfterLoad(T obj)
+        {
+            mResult = obj;
+            mIsDone = true;
+            if (mCallBack != null)
+                mCallBack(mResult);
+            CheckResource();
+        }
+
+        protected void CheckResource()
+        {
+#if UNITY_EDITOR
+            if (mResult == null)
+            {
+                Debug.LogWarning("[AssetLoadTask] Asset at " + mPath + " could not be loaded !!!");
+            }
+            else
+            {
+                float t = Time.realtimeSinceStartup - mStartLoadTime;
+                Debug.Log("[AssetLoadTask] Asset at " + mPath + " loaded. [t=" + t + "]");
+            }
+#endif
+        }
+
+    }
+
+
+    //Just for inner resource build AssetBundle
     public class ResourceLoadTask<T> where T : Object
     {
         protected bool mIsDone = false;
@@ -701,7 +794,7 @@ namespace AssetBundles
             {
                 if (inPack)
                 {
-                    string assetBundleName = Path.GetDirectoryName("Resources/" + mPath);
+                    string assetBundleName = Path.GetDirectoryName("Resources/" + mPath).ToLower();
                     AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadInResourcePackedAsset<T>(assetBundleName, mPath, AfterLoad));
                 }
                 else
@@ -773,7 +866,7 @@ namespace AssetBundles
             string assetBundleName = string.Empty;
             if (inPack)
             {
-                assetBundleName = Path.GetDirectoryName(path);
+                assetBundleName = Path.GetDirectoryName(path).ToLower();
             }
             AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadLevel(assetBundleName, path, isAdditive, AfterLoad));
 

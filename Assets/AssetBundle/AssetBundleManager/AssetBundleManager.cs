@@ -732,7 +732,6 @@ namespace AssetBundles
 
         static public IEnumerator LoadInResourcePackedAsset<T>(string assetBundleName, string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
         {
-            assetBundleName = assetBundleName.ToLower();
             AssetBundleLoadAssetOperation operation;
             if (m_AssetBundleManifest == null || string.IsNullOrEmpty(m_AssetBundleManifest.GetAllAssetBundles().FirstOrDefault(s => s == assetBundleName)))
             {
@@ -808,6 +807,17 @@ namespace AssetBundles
             return operation;
         }
 
+        static public IEnumerator LoadAssetAsync<T>(string assetBundleName, string assetName, Action<T> callback) where T : UnityEngine.Object
+        {
+            var operation = LoadAssetAsync(assetBundleName, assetName, typeof(T));
+            yield return sInstance.StartCoroutine(operation);
+
+            if (callback != null)
+            {
+                callback(operation.GetAsset<T>());
+            }
+        }
+
         /// <summary>
         /// Starts a load operation for a level from the given asset bundle.
         /// </summary>
@@ -852,7 +862,7 @@ namespace AssetBundles
             if (SimulateAssetBundleInEditor)
             {
                 asyncOperation =
-                    LoadLevelAsync(path, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelSimulationOperation;
+                    LoadLevelAsync(assetBundleName, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelSimulationOperation;
             }
             else
 #endif
@@ -870,6 +880,19 @@ namespace AssetBundles
             {
                 callback(asyncOperation.GetAsyncOperation());
             }
+        }
+
+        /// <summary>
+        /// 创建加载Assets目录下资源任务(不包括Resources目录).
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="path">Assets目录下相对路径</param>
+        /// <param name="callBack">资源加载完成回调</param>
+        /// <param name="inPack">多个资源打包成一个AssetBundle文件</param>
+        /// <returns></returns>
+        public static AssetLoadTask<T> CreateAssetLoadTask<T>(string path, System.Action<T> callBack = null, bool inPack = false) where T : UnityEngine.Object
+        {
+            return new AssetLoadTask<T>(path, callBack, inPack);
         }
 
         /// <summary>

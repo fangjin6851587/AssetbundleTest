@@ -116,7 +116,10 @@ namespace AssetBundles
                 !File.Exists(GetPlatformAssetBundleLocationPath() + "/" + Utility.GetPlatformName());
 
             var operate = AssetBundleManager.Initialize();
-            yield return StartCoroutine(operate);
+            if (operate != null)
+            {
+                yield return StartCoroutine(operate);
+            }
 
             mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
             mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.AssetBundleInitializeOk;
