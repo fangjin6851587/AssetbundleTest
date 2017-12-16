@@ -41,7 +41,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
 /*  The AssetBundle Manager provides a High-Level API for working with AssetBundles. 
     The AssetBundle Manager will take care of loading AssetBundles and their associated 
     Asset Dependencies.
@@ -716,6 +715,91 @@ namespace AssetBundles
             m_DownloadingBundles.Remove(download.assetBundleName);
         }
 
+#if ENABLE_ASYNC_WAIT
+
+        public static async void LoadInResourceAssetAsyncWait<T>(string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
+        {
+            AssetBundleLoadAssetOperation operation;
+
+            string assetBundleName = GetInResourceAssetBundleName(resourcePath);
+            if (string.IsNullOrEmpty(assetBundleName))
+            {
+                operation = new ResourceLoadAssetOperationFull(resourcePath);
+            }
+            else
+            {
+                assetBundleName = RemapVariantName(assetBundleName);
+                LoadAssetBundle(assetBundleName);
+                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath), typeof(T));
+            }
+
+            m_InProgressOperations.Add(operation);
+
+            await operation;
+
+            callback?.Invoke(operation.GetAsset<T>());
+        }
+
+        public static async void LoadInResourcePackedAssetAsyncWait<T>(string assetBundleName, string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
+        {
+            AssetBundleLoadAssetOperation operation;
+            if (m_AssetBundleManifest == null || string.IsNullOrEmpty(m_AllAssetBundles.FirstOrDefault(s => s == assetBundleName)))
+            {
+                operation = new ResourceLoadAssetOperationFull(resourcePath);
+            }
+            else
+            {
+                assetBundleName = RemapVariantName(assetBundleName);
+                LoadAssetBundle(assetBundleName);
+                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath), typeof(T));
+            }
+            m_InProgressOperations.Add(operation);
+
+            await operation;
+
+            callback?.Invoke(operation.GetAsset<T>());
+        }
+
+        static public async void LoadLevel(string assetBundleName, string path, bool isAdditive, System.Action<AsyncOperation> callback)
+        {
+            AssetBundleLoadOperation asyncOperation;
+
+#if UNITY_EDITOR
+            if (SimulateAssetBundleInEditor)
+            {
+                asyncOperation =
+                    LoadLevelAsync(assetBundleName, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelSimulationOperation;
+            }
+            else
+#endif
+            {
+                asyncOperation =
+                    LoadLevelAsync(assetBundleName, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelOperation;
+            }
+
+            if (asyncOperation != null)
+            {
+                await asyncOperation;
+                var getAsyncOperation = asyncOperation as IGetAsyncOperation;
+                callback?.Invoke(getAsyncOperation.GetAsyncOperation());
+            }
+            else
+            {
+                if (callback != null)
+                {
+                    callback(null);
+                }
+            }
+        }
+
+        public static async void LoadAssetAsync<T>(string assetBundleName, string assetName, Action<T> callback) where T : UnityEngine.Object
+        {
+            var operation = LoadAssetAsync(assetBundleName, assetName, typeof(T));
+            await operation;
+            callback?.Invoke(operation.GetAsset<T>());
+        }
+
+#else
         static public IEnumerator LoadInResourceAssetAsync<T>(string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
         {
             AssetBundleLoadAssetOperation operation = null;
@@ -764,6 +848,47 @@ namespace AssetBundles
                 callback(operation.GetAsset<T>());
             }
         }
+
+        static public IEnumerator LoadLevel(string assetBundleName, string path, bool isAdditive, System.Action<AsyncOperation> callback)
+        {
+            IGetAsyncOperation asyncOperation;
+
+#if UNITY_EDITOR
+            if (SimulateAssetBundleInEditor)
+            {
+                asyncOperation =
+                    LoadLevelAsync(assetBundleName, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelSimulationOperation;
+            }
+            else
+#endif
+            {
+                asyncOperation =
+                    LoadLevelAsync(assetBundleName, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelOperation;
+            }
+
+            while (asyncOperation.GetAsyncOperation() == null && !asyncOperation.IsDone())
+            {
+                yield return s_EndOfFrame;
+            }
+
+            if (callback != null)
+            {
+                callback(asyncOperation.GetAsyncOperation());
+            }
+        }
+
+        
+        static public IEnumerator LoadAssetAsync<T>(string assetBundleName, string assetName, Action<T> callback) where T : UnityEngine.Object
+        {
+            var operation = LoadAssetAsync(assetBundleName, assetName, typeof(T));
+            yield return sInstance.StartCoroutine(operation);
+
+            if (callback != null)
+            {
+                callback(operation.GetAsset<T>());
+            }
+        }
+#endif
 
 
         static string GetInResourceAssetBundleName(string resourcePath)
@@ -820,17 +945,6 @@ namespace AssetBundles
             return operation;
         }
 
-        static public IEnumerator LoadAssetAsync<T>(string assetBundleName, string assetName, Action<T> callback) where T : UnityEngine.Object
-        {
-            var operation = LoadAssetAsync(assetBundleName, assetName, typeof(T));
-            yield return sInstance.StartCoroutine(operation);
-
-            if (callback != null)
-            {
-                callback(operation.GetAsset<T>());
-            }
-        }
-
         /// <summary>
         /// Starts a load operation for a level from the given asset bundle.
         /// </summary>
@@ -866,35 +980,6 @@ namespace AssetBundles
 
             return operation;
         }
-
-        static public IEnumerator LoadLevel(string assetBundleName, string path, bool isAdditive, System.Action<AsyncOperation> callback)
-        {
-            IGetAsyncOperation asyncOperation;
-
-#if UNITY_EDITOR
-            if (SimulateAssetBundleInEditor)
-            {
-                asyncOperation =
-                    LoadLevelAsync(assetBundleName, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelSimulationOperation;
-            }
-            else
-#endif
-            {
-                asyncOperation =
-                    LoadLevelAsync(assetBundleName, Path.GetFileName(path), isAdditive) as AssetBundleLoadLevelOperation;
-            }
-
-            while (asyncOperation.GetAsyncOperation() == null && !asyncOperation.IsDone())
-            {
-                yield return s_EndOfFrame;
-            }
-
-            if (callback != null)
-            {
-                callback(asyncOperation.GetAsyncOperation());
-            }
-        }
-
 
         /// <summary>
         /// 创建加载Assets目录下资源任务(不包括Resources目录).

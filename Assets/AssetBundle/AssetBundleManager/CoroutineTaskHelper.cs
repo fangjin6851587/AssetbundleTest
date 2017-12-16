@@ -1,10 +1,11 @@
-﻿using System.Collections;
+﻿#if NET_4_6
+using System.Collections;
 using System.Threading.Tasks;
 using UnityEngine;
 
 namespace AssetBundles
 {
-#if NET_4_6
+
     public static class CoroutineTaskHelper
     {
         /// <summary>
@@ -151,6 +152,6 @@ namespace AssetBundles
         }
 
     }
-#endif
 }
+#endif
 

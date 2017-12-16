@@ -1,6 +1,17 @@
-﻿using System.Collections;
+﻿#if !ABM_USE_WWW && !ABM_USE_UWREQ
+#if UNITY_5_4_OR_NEWER && !UNITY_5_5
+#define ABM_USE_UWREQ
+#else
+#define ABM_USE_WWW
+#endif
+#endif
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+#if ABM_USE_UWREQ
+using UnityEngine.Networking;
+#endif
 
 namespace AssetBundles.AssetBundleHttpUtils
 {
@@ -122,5 +133,29 @@ namespace AssetBundles.AssetBundleHttpUtils
                 onDownLoaded(data, error);
             }
         }
+
+#if ENABLE_ASYNC_WAIT
+
+        public async void AsyncSendWebRequest()
+        {
+            string webUrl = mUrl.Replace(" ", "%20");
+
+            byte[] data = null;
+            UnityWebRequest request = UnityWebRequest.Get(webUrl);
+            await request.SendWebRequest();
+
+            if (request.downloadHandler != null)
+            {
+                data = request.downloadHandler.data;
+            }
+            string error = request.error;
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                Debug.LogError("Url: " + mUrl + " Error: " + error);
+            }
+            onDownLoaded?.Invoke(data, error);
+        }
+#endif
     }
 }

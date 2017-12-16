@@ -320,7 +320,13 @@ namespace AssetBundles
                     ThrowException(AssetBundleUpdateCode.VersionFailed, error);
                 }
             });
+
+
+#if ENABLE_ASYNC_WAIT
+            downloader.AsyncSendWebRequest();
+#else
             StartCoroutine(downloader.SendWebRequest());
+#endif
         }
 
         private void Initilize()
@@ -549,7 +555,12 @@ namespace AssetBundles
             {
                 mTargetVersion = version;
                 var downloader = new Downloader(DownloadUrl + "/" + AssetBundleList.FILE_NAME, CollectUpdateResourceList);
+
+#if ENABLE_ASYNC_WAIT
+                downloader.AsyncSendWebRequest();
+#else
                 StartCoroutine(downloader.SendWebRequest());
+#endif
             }
             else
             {
