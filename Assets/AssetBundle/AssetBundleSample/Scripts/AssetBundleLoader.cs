@@ -34,12 +34,12 @@ public class AssetBundleLoader : MonoBehaviour
         {
             Updater.StartDownload();
         }
-        else if (code == AssetBundleUpdateCode.GetBundleListOk)
+        else if (code == AssetBundleUpdateCode.BundleListOk)
         {
             mCurrentSize = 0;
             mTotalSize = assetBundleUpdaterResult.TotalSize;
         }
-        else if (code == AssetBundleUpdateCode.UpdateOk)
+        else if (code == AssetBundleUpdateCode.Updating)
         {
             mIsDownloading = true;
             mCurrentSize += (uint)assetBundleUpdaterResult.AssetBundle.Size;

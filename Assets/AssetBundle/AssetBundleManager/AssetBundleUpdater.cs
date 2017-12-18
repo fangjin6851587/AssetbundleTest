@@ -11,15 +11,16 @@ namespace AssetBundles
     public enum AssetBundleUpdateCode
     {
         VersionOk = 1,
-        GetBundleListOk,
-        UpdateOk,
+        BundleListOk,
+        Updating,
         UpdateCompleted,
         AssetBundleInitializeOk,
 
-        VersionFailed,
+        VersionFailed = 100,
         GetBundleListFailed,
-        NeedDownloadNewApp,
-        UpdateFailed
+        UpdateFailed,
+
+        NeedDownloadNewApp = 200
     }
 
     public class AssetBundleUpdaterResult
@@ -182,7 +183,7 @@ namespace AssetBundles
                 NotificationLastResult();
 
                 mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-                mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.GetBundleListOk;
+                mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.BundleListOk;
                 mLastAssetBundleUpdaterResult.TotalSize = mAssetBundleUpdateInfo.GetPendingListTotalSize();
                 NotificationLastResult();
             }
@@ -261,7 +262,7 @@ namespace AssetBundles
 
                     mAssetBundleUpdateInfo.PendingList.Remove(assetBundle.AssetBundleName);
                     mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-                    mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.UpdateOk;
+                    mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.Updating;
                     mLastAssetBundleUpdaterResult.AssetBundle = assetBundle;
                     NotificationLastResult();
                 }
