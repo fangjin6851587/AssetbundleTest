@@ -560,13 +560,23 @@ namespace AssetBundles
 
                 if (IsAssetBundleEncrypted)
                 {
-#if ABM_USE_UWREQ
-                    UnityWebRequest request = UnityWebRequest.Get(url);
-                    m_InProgressOperations.Add(new AssetBundleDownloadWebRequestFromEncryptOperation(assetBundleName, request));
-#else
-                     WWW download = new WWW(url);
-                     m_InProgressOperations.Add(new AssetBundleDownloadFromWebOperation(assetBundleName, download));
+#if !UNITY_2017_1_OR_NEWER
+                    if (url.StartsWith(Application.streamingAssetsPath))
+                    {
+                        WWW download = new WWW(url);
+                        m_InProgressOperations.Add(new AssetBundleEncryptedDownloadFromWebOperation(assetBundleName, download));
+                    }
+                    else
 #endif
+                    {
+#if ABM_USE_UWREQ
+                        UnityWebRequest request = UnityWebRequest.Get(url);
+                        m_InProgressOperations.Add(new AssetBundleDownloadWebRequestFromEncryptOperation(assetBundleName, request));
+#else
+                        WWW download = new WWW(url);
+                        m_InProgressOperations.Add(new AssetBundleEncryptedDownloadFromWebOperation(assetBundleName, download));
+#endif
+                    }
                 }
                 else
                 {
@@ -575,14 +585,17 @@ namespace AssetBundles
                     // UnityWebRequest also is able to load from there, but we use the former API because:
                     // - UnityWebRequest under Android OS fails to load StreamingAssets files (at least Unity5.50 or less)
                     // - or UnityWebRequest anyway internally calls AssetBundle.LoadFromFileAsync for StreamingAssets files
+                    // Reading StreamingAssets on Android using UnityWebRequest is supported since 2017.1. It will not work in 5.6.
+                    // WWW supports this in 5.x.
+#if !UNITY_2017_1_OR_NEWER
                     if (url.StartsWith(Application.streamingAssetsPath))
                     {
                         m_InProgressOperations.Add(new AssetBundleDownloadFileOperation(assetBundleName, url));
                     }
                     else
+#endif
                     {
-                        UnityWebRequest request = null;
-
+                        UnityWebRequest request;
                         if (isLoadingAssetBundleManifest || url.ToLower().StartsWith("file://"))
                         {
                             // For manifest assetbundle, always download it as we don't have hash for it.
@@ -595,14 +608,14 @@ namespace AssetBundles
                         m_InProgressOperations.Add(new AssetBundleDownloadWebRequestOperation(assetBundleName, request));
                     }
 #else
-                WWW download = null;
-                if (isLoadingAssetBundleManifest || url.ToLower().StartsWith("file://")) {
-                    // For manifest assetbundle, always download it as we don't have hash for it.
-                    download = new WWW(url);
-                } else {
-                    download = WWW.LoadFromCacheOrDownload(url, m_AssetBundleManifest.GetAssetBundleHash(assetBundleName), 0);
-                }
-                m_InProgressOperations.Add(new AssetBundleDownloadFromWebOperation(assetBundleName, download));
+                    WWW download = null;
+                    if (isLoadingAssetBundleManifest || url.ToLower().StartsWith("file://")) {
+                        // For manifest assetbundle, always download it as we don't have hash for it.
+                        download = new WWW(url);
+                    } else {
+                        download = WWW.LoadFromCacheOrDownload(url, m_AssetBundleManifest.GetAssetBundleHash(assetBundleName), 0);
+                    }
+                    m_InProgressOperations.Add(new AssetBundleDownloadFromWebOperation(assetBundleName, download));
 #endif
                 }
 
