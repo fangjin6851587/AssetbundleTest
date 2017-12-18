@@ -134,7 +134,7 @@ namespace AssetBundles.AssetBundleHttpUtils
             }
         }
 
-#if ENABLE_ASYNC_WAIT
+#if ENABLE_ASYNC_WAIT && NET_4_6
 
         public async void AsyncSendWebRequest()
         {

@@ -39,7 +39,7 @@ namespace AssetBundles
         abstract public bool IsDone();
     }
 
-#if ENABLE_ASYNC_WAIT
+#if ENABLE_ASYNC_WAIT && NET_4_6
 
     public static class AssetBundleLoadOperationAsynTools
     {
@@ -727,7 +727,7 @@ namespace AssetBundles
         // avoid user to use this
         protected AssetLoadTask() { }
 
-        public AssetLoadTask(string path, System.Action<T> callBack = null, bool inPack = false)
+        public AssetLoadTask(string path, System.Action<T> callBack = null)
         {
             mIsDone = false;
             mPath = path;
@@ -739,16 +739,10 @@ namespace AssetBundles
 
             if (Application.isPlaying)
             {
-                string assetBundleName = path;
-                if (inPack)
-                {
-                    assetBundleName = Path.GetDirectoryName(mPath);
-                }
-#if ENABLE_ASYNC_WAIT
-                AssetBundleManager.LoadAssetAsync<T>(assetBundleName.ToLower(), Path.GetFileName(mPath), AfterLoad);
+#if ENABLE_ASYNC_WAIT && NET_4_6
+                AssetBundleManager.LoadAssetAsync<T>(mPath, AfterLoad);
 #else
-                AssetBundleManager.sInstance.StartCoroutine(
-                    AssetBundleManager.LoadAssetAsync<T>(assetBundleName.ToLower(), Path.GetFileName(mPath), AfterLoad));
+                AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadAssetAsync<T>(mPath, AfterLoad));
 #endif
             }
             else
@@ -823,7 +817,7 @@ namespace AssetBundles
         // avoid user to use this
         protected ResourceLoadTask() { }
 
-        public ResourceLoadTask(string path, System.Action<T> callBack = null, bool inPack = false)
+        public ResourceLoadTask(string path, System.Action<T> callBack = null)
         {
             mIsDone = false;
             mPath = path;
@@ -835,24 +829,11 @@ namespace AssetBundles
 
             if (Application.isPlaying)
             {
-                if (inPack)
-                {
-                    string assetBundleName = Path.GetDirectoryName("Resources/" + mPath).ToLower();
-#if ENABLE_ASYNC_WAIT
-                    AssetBundleManager.LoadInResourcePackedAssetAsyncWait<T>(assetBundleName, mPath, AfterLoad);
+#if ENABLE_ASYNC_WAIT && NET_4_6
+                AssetBundleManager.LoadInResourceAssetAsync<T>(mPath, AfterLoad);
 #else
-                    AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadInResourcePackedAsset<T>(assetBundleName, mPath, AfterLoad));
+                AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadInResourceAssetAsync<T>(mPath, AfterLoad));
 #endif
-                }
-                else
-                {
-#if ENABLE_ASYNC_WAIT
-                    AssetBundleManager.LoadInResourceAssetAsyncWait<T>(mPath, AfterLoad);
-#else
-                    AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadInResourceAssetAsync<T>(mPath, AfterLoad));
-#endif
-
-                }
             }
             else
             {
@@ -914,15 +895,10 @@ namespace AssetBundles
             mAsyncOpera = null;
             mIsDone = false;
 
-            string assetBundleName = string.Empty;
-            if (inPack)
-            {
-                assetBundleName = Path.GetDirectoryName(path).ToLower();
-            }
-#if ENABLE_ASYNC_WAIT
-            AssetBundleManager.LoadLevel(assetBundleName, path, isAdditive, AfterLoad);
+#if ENABLE_ASYNC_WAIT && NET_4_6
+            AssetBundleManager.LoadLevel(path, isAdditive, AfterLoad);
 #else
-            AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadLevel(assetBundleName, path, isAdditive, AfterLoad));
+            AssetBundleManager.sInstance.StartCoroutine(AssetBundleManager.LoadLevel(path, isAdditive, AfterLoad));
 #endif
 
 #if UNITY_EDITOR

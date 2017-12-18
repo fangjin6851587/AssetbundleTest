@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -101,14 +102,14 @@ namespace AssetBundles
             mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
             mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.UpdateCompleted;
             NotificationLastResult();
-#if ENABLE_ASYNC_WAIT
+#if ENABLE_ASYNC_WAIT && NET_4_6
             AssetBundleInitialize();
 #else
             StartCoroutine(AssetBundleInitialize());
 #endif
         }
 
-#if ENABLE_ASYNC_WAIT
+#if ENABLE_ASYNC_WAIT && NET_4_6
         private async void AssetBundleInitialize()
         {
             AssetBundleManager.BaseDownloadingURL = !DownloadToLocal ? DownloadUrl : string.Empty;
@@ -199,6 +200,11 @@ namespace AssetBundles
             }
             else if (result.multiRangeCode == MultiRangeCode.OK)
             {
+                if (mLastAssetBundleUpdaterResult != null && mLastAssetBundleUpdaterResult.IsError)
+                {
+                    return;
+                }
+
                 if (InitilizeDownload())
                 {
                     StartDownloadUnfinished();
@@ -220,6 +226,17 @@ namespace AssetBundles
                 {
                     string fullPath = GetPlatformAssetBundleLocationPath() + "/" + assetBundle.AssetBundleName;
                     string dir = Path.GetDirectoryName(fullPath);
+
+                    if (Directory.Exists(fullPath))
+                    {
+                        Directory.Delete(fullPath, true);
+                    }
+
+                    if (dir != null && File.Exists(dir))
+                    {
+                        File.Delete(dir);
+                    }
+
                     if (dir != null && !Directory.Exists(dir))
                     {
                         Directory.CreateDirectory(dir);
@@ -243,7 +260,6 @@ namespace AssetBundles
                     }
 
                     mAssetBundleUpdateInfo.PendingList.Remove(assetBundle.AssetBundleName);
-
                     mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
                     mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.UpdateOk;
                     mLastAssetBundleUpdaterResult.AssetBundle = assetBundle;
@@ -344,7 +360,7 @@ namespace AssetBundles
             });
 
 
-#if ENABLE_ASYNC_WAIT
+#if ENABLE_ASYNC_WAIT && NET_4_6
             downloader.AsyncSendWebRequest();
 #else
             StartCoroutine(downloader.SendWebRequest());
@@ -364,6 +380,7 @@ namespace AssetBundles
             mCanDownload = false;
             bool needDownload = true;
             mNeedDownloadHttpRangeList = null;
+            mLastAssetBundleUpdaterResult = null;
 
             if (mAssetBundleUpdateInfo.PendingList.Count > 0)
             {
@@ -578,7 +595,7 @@ namespace AssetBundles
                 mTargetVersion = version;
                 var downloader = new Downloader(DownloadUrl + "/" + AssetBundleList.FILE_NAME, CollectUpdateResourceList);
 
-#if ENABLE_ASYNC_WAIT
+#if ENABLE_ASYNC_WAIT && NET_4_6
                 downloader.AsyncSendWebRequest();
 #else
                 StartCoroutine(downloader.SendWebRequest());

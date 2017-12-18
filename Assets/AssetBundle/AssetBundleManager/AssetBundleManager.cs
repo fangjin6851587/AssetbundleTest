@@ -118,7 +118,7 @@ namespace AssetBundles
         static string[] m_AllAssetBundles = new string[0];
         static string[] m_AllVariants = new string[0];
 
-#if !ENABLE_ASYNC_WAIT
+#if !ENABLE_ASYNC_WAIT && NET_4_6
         static WaitForEndOfFrame s_EndOfFrame = new WaitForEndOfFrame();
 #endif
 
@@ -731,22 +731,33 @@ namespace AssetBundles
             m_DownloadingBundles.Remove(download.assetBundleName);
         }
 
-#if ENABLE_ASYNC_WAIT
+#if ENABLE_ASYNC_WAIT && NET_4_6
 
-        public static async void LoadInResourceAssetAsyncWait<T>(string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
+        public static async void LoadInResourceAssetAsync<T>(string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
         {
             AssetBundleLoadAssetOperation operation;
 
-            string assetBundleName = GetInResourceAssetBundleName(resourcePath);
+            string assetBundleName = GetAssetBundleName("Resources/" + resourcePath);
             if (string.IsNullOrEmpty(assetBundleName))
             {
                 operation = new ResourceLoadAssetOperationFull(resourcePath);
             }
             else
             {
-                assetBundleName = RemapVariantName(assetBundleName);
-                LoadAssetBundle(assetBundleName);
-                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath), typeof(T));
+#if UNITY_EDITOR
+                if (SimulateAssetBundleInEditor)
+                {
+                    operation = new ResourceLoadAssetOperationFull(resourcePath);
+                }
+                else
+#endif
+                {
+                    assetBundleName = RemapVariantName(assetBundleName);
+                    LoadAssetBundle(assetBundleName);
+                    operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath),
+                        typeof(T));
+                }
+
             }
 
             m_InProgressOperations.Add(operation);
@@ -756,30 +767,10 @@ namespace AssetBundles
             callback?.Invoke(operation.GetAsset<T>());
         }
 
-        public static async void LoadInResourcePackedAssetAsyncWait<T>(string assetBundleName, string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
-        {
-            AssetBundleLoadAssetOperation operation;
-            if (m_AssetBundleManifest == null || string.IsNullOrEmpty(m_AllAssetBundles.FirstOrDefault(s => s == assetBundleName)))
-            {
-                operation = new ResourceLoadAssetOperationFull(resourcePath);
-            }
-            else
-            {
-                assetBundleName = RemapVariantName(assetBundleName);
-                LoadAssetBundle(assetBundleName);
-                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath), typeof(T));
-            }
-            m_InProgressOperations.Add(operation);
-
-            await operation;
-
-            callback?.Invoke(operation.GetAsset<T>());
-        }
-
-        static public async void LoadLevel(string assetBundleName, string path, bool isAdditive, System.Action<AsyncOperation> callback)
+        static public async void LoadLevel(string path, bool isAdditive, System.Action<AsyncOperation> callback)
         {
             AssetBundleLoadOperation asyncOperation;
-
+            string assetBundleName = GetAssetBundleName(path);
 #if UNITY_EDITOR
             if (SimulateAssetBundleInEditor)
             {
@@ -805,9 +796,9 @@ namespace AssetBundles
             }
         }
 
-        public static async void LoadAssetAsync<T>(string assetBundleName, string assetName, Action<T> callback) where T : UnityEngine.Object
+        public static async void LoadAssetAsync<T>(string path, Action<T> callback) where T : UnityEngine.Object
         {
-            var operation = LoadAssetAsync(assetBundleName, assetName, typeof(T));
+            var operation = LoadAssetAsync(GetAssetBundleName(path), Path.GetFileName(path), typeof(T));
             await operation;
             callback?.Invoke(operation.GetAsset<T>());
         }
@@ -815,18 +806,27 @@ namespace AssetBundles
 #else
         static public IEnumerator LoadInResourceAssetAsync<T>(string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
         {
-            AssetBundleLoadAssetOperation operation = null;
+            AssetBundleLoadAssetOperation operation;
 
-            string assetBundleName = GetInResourceAssetBundleName(resourcePath);
+            string assetBundleName = GetAssetBundleName("Resources/" + resourcePath);
             if (string.IsNullOrEmpty(assetBundleName))
             {
                 operation = new ResourceLoadAssetOperationFull(resourcePath);
             }
             else
             {
-                assetBundleName = RemapVariantName(assetBundleName);
-                LoadAssetBundle(assetBundleName);
-                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath), typeof(T));
+#if UNITY_EDITOR
+                if (SimulateAssetBundleInEditor)
+                {
+                    operation = new ResourceLoadAssetOperationFull(resourcePath);
+                }
+                else
+#endif
+                {
+                    assetBundleName = RemapVariantName(assetBundleName);
+                    LoadAssetBundle(assetBundleName);
+                    operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath), typeof(T));
+                }
             }
 
             m_InProgressOperations.Add(operation);
@@ -839,33 +839,10 @@ namespace AssetBundles
             }
         }
 
-        static public IEnumerator LoadInResourcePackedAsset<T>(string assetBundleName, string resourcePath, System.Action<T> callback) where T : UnityEngine.Object
-        {
-            AssetBundleLoadAssetOperation operation;
-            if (m_AssetBundleManifest == null || string.IsNullOrEmpty(m_AllAssetBundles.FirstOrDefault(s => s == assetBundleName)))
-            {
-                operation = new ResourceLoadAssetOperationFull(resourcePath);
-            }
-            else
-            {
-                assetBundleName = RemapVariantName(assetBundleName);
-                LoadAssetBundle(assetBundleName);
-                operation = new AssetBundleLoadAssetOperationFull(assetBundleName, Path.GetFileName(resourcePath), typeof(T));
-            }
-            m_InProgressOperations.Add(operation);
-
-            yield return sInstance.StartCoroutine(operation);
-
-            if (callback != null)
-            {
-                callback(operation.GetAsset<T>());
-            }
-        }
-
-        static public IEnumerator LoadLevel(string assetBundleName, string path, bool isAdditive, System.Action<AsyncOperation> callback)
+        static public IEnumerator LoadLevel(string path, bool isAdditive, System.Action<AsyncOperation> callback)
         {
             IGetAsyncOperation asyncOperation;
-
+            string assetBundleName = GetAssetBundleName(path);
 #if UNITY_EDITOR
             if (SimulateAssetBundleInEditor)
             {
@@ -891,9 +868,9 @@ namespace AssetBundles
         }
 
         
-        static public IEnumerator LoadAssetAsync<T>(string assetBundleName, string assetName, Action<T> callback) where T : UnityEngine.Object
+        static public IEnumerator LoadAssetAsync<T>(string path, Action<T> callback) where T : UnityEngine.Object
         {
-            var operation = LoadAssetAsync(assetBundleName, assetName, typeof(T));
+            var operation = LoadAssetAsync(GetAssetBundleName(path), Path.GetFileName(path), typeof(T));
             yield return sInstance.StartCoroutine(operation);
 
             if (callback != null)
@@ -904,22 +881,16 @@ namespace AssetBundles
 #endif
 
 
-        static string GetInResourceAssetBundleName(string resourcePath)
+        static string GetAssetBundleName(string path)
         {
-            if (m_AssetBundleManifest == null)
+#if UNITY_EDITOR
+            if (SimulateAssetBundleInEditor)
             {
-                return null;
+                m_AllAssetBundles = AssetDatabase.GetAllAssetBundleNames();
             }
-
-            foreach (var assetBundle in m_AllAssetBundles)
-            {
-                if (assetBundle.EndsWith(resourcePath, StringComparison.OrdinalIgnoreCase) && assetBundle.Contains("resources/"))
-                {
-                    return assetBundle;
-                }
-            }
-
-            return null;
+#endif
+            path = path.ToLower();
+            return m_AllAssetBundles.FirstOrDefault(assetBundle => path.StartsWith(assetBundle));
         }
 
 
@@ -1000,11 +971,10 @@ namespace AssetBundles
         /// <typeparam name="T"></typeparam>
         /// <param name="path">Assets目录下相对路径</param>
         /// <param name="callBack">资源加载完成回调</param>
-        /// <param name="inPack">多个资源打包成一个AssetBundle文件</param>
         /// <returns></returns>
-        public static AssetLoadTask<T> CreateAssetLoadTask<T>(string path, System.Action<T> callBack = null, bool inPack = false) where T : UnityEngine.Object
+        public static AssetLoadTask<T> CreateAssetLoadTask<T>(string path, System.Action<T> callBack = null) where T : UnityEngine.Object
         {
-            return new AssetLoadTask<T>(path, callBack, inPack);
+            return new AssetLoadTask<T>(path, callBack);
         }
 
         /// <summary>
@@ -1013,11 +983,10 @@ namespace AssetBundles
         /// <typeparam name="T"></typeparam>
         /// <param name="path">Resource目录下相对路径</param>
         /// <param name="callBack">资源加载完成回调</param>
-        /// <param name="inPack">多个资源打包成一个AssetBundle文件</param>
         /// <returns></returns>
-        public static ResourceLoadTask<T> CreateResourceLoadTask<T>(string path, System.Action<T> callBack = null, bool inPack = false) where T : UnityEngine.Object
+        public static ResourceLoadTask<T> CreateResourceLoadTask<T>(string path, System.Action<T> callBack = null) where T : UnityEngine.Object
         {
-            return new ResourceLoadTask<T>(path, callBack, inPack);
+            return new ResourceLoadTask<T>(path, callBack);
         }
 
         /// <summary>
@@ -1025,12 +994,10 @@ namespace AssetBundles
         /// </summary>
         /// <param name="path">场景路径</param>
         /// <param name="isAdditive">附加场景</param>
-        /// <param name="inPack">多个场景打包成一个AssetBundle文件</param>
         /// <returns></returns>
-        public static LevelLoadTask CreateLevelLoadTask(string path, bool isAdditive, bool inPack = false)
+        public static LevelLoadTask CreateLevelLoadTask(string path, bool isAdditive)
         {
-            return new LevelLoadTask(path, isAdditive, inPack);
+            return new LevelLoadTask(path, isAdditive);
         }
-
     } // End of AssetBundleManager.
 }

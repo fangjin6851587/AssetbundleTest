@@ -61,18 +61,12 @@ public class AssetBundleLoader : MonoBehaviour
             if (GUI.Button(new Rect(50, 135, 200, 80), "Load Resource"))
             {
                 DestroyGameObject();
-                AssetBundleManager.CreateResourceLoadTask<GameObject>("AssetBundles/MyCube", OnAssetLoaded);
+                AssetBundleManager.CreateResourceLoadTask<GameObject>("AssetBundles/MyCube1", OnAssetLoaded);
             }
-            if (GUI.Button(new Rect(50, 220, 200, 80), "Load Resource In Pack"))
+            if (GUI.Button(new Rect(50, 220, 200, 80), "Load Level"))
             {
                 DestroyGameObject();
-                AssetBundleManager.CreateResourceLoadTask<GameObject>("AssetBundles/MyCube", OnAssetLoaded, true);
-
-            }
-            if (GUI.Button(new Rect(50, 305, 200, 80), "Load Level"))
-            {
-                DestroyGameObject();
-                AssetBundleManager.CreateLevelLoadTask("AssetBundle/AssetBundleSample/Scene/Test", true, true);
+                AssetBundleManager.CreateLevelLoadTask("AssetBundle/AssetBundleSample/Scene/Test", true);
             }
         }
     }

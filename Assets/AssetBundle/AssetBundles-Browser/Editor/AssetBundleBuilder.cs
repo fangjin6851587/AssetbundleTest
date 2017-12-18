@@ -406,6 +406,7 @@ namespace AssetBundleBrowser
                 string assetBundleName = path.Substring(ASSSETS_STRING.Length + 1);
                 int extensionIndex = assetBundleName.LastIndexOf(".", StringComparison.Ordinal);
                 assetBundleName = assetBundleName.Substring(0, extensionIndex);
+                assetBundleName = FilterResourceAssetBundle(assetBundleName);
                 var buildFolder = GetBuildFolder(path);
 
                 if (buildFolder != null)
@@ -427,6 +428,16 @@ namespace AssetBundleBrowser
                     assetImporter.SetAssetBundleNameAndVariant(assetBundleName, string.Empty);
                 }
             }
+        }
+
+        private string FilterResourceAssetBundle(string assetBundle)
+        {
+            int resourceIndex = assetBundle.IndexOf("Resources/", StringComparison.Ordinal);
+            if (resourceIndex >= 0)
+            {
+                assetBundle = assetBundle.Substring(resourceIndex);
+            }
+            return assetBundle;
         }
 
         private bool ShouldIgnoreFile(string path)

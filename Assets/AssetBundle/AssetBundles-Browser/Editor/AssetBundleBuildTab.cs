@@ -234,7 +234,7 @@ namespace AssetBundleBrowser
                         if (string.IsNullOrEmpty(buildFolder.AssetBundleName))
                         {
                             buildFolder.AssetBundleName = buildFolder.Path.Substring(7);
-                            int resourceIndex = buildFolder.AssetBundleName.IndexOf("Resources/");
+                            int resourceIndex = buildFolder.AssetBundleName.IndexOf("Resources/", StringComparison.Ordinal);
                             if (resourceIndex >= 0)
                             {
                                 buildFolder.AssetBundleName = buildFolder.AssetBundleName.Substring(resourceIndex);
