@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using AssetBundles;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class AssetBundleLoader : MonoBehaviour
 {
@@ -11,6 +12,9 @@ public class AssetBundleLoader : MonoBehaviour
     private bool mIsError;
     private bool mInited;
     private GameObject mGameObject;
+    private uint mTotalSize;
+    private uint mCurrentSize;
+    private bool mIsDownloading;
 
     void Start()
     {
@@ -20,6 +24,7 @@ public class AssetBundleLoader : MonoBehaviour
 
     private void OnAssetBundleUpdate(AssetBundleUpdaterResult assetBundleUpdaterResult)
     {
+        mIsDownloading = false;
         AssetBundleUpdateCode code = assetBundleUpdaterResult.Code;
         if (code == AssetBundleUpdateCode.AssetBundleInitializeOk)
         {
@@ -28,6 +33,16 @@ public class AssetBundleLoader : MonoBehaviour
         else if (code == AssetBundleUpdateCode.VersionOk)
         {
             Updater.StartDownload();
+        }
+        else if (code == AssetBundleUpdateCode.GetBundleListOk)
+        {
+            mCurrentSize = 0;
+            mTotalSize = assetBundleUpdaterResult.TotalSize;
+        }
+        else if (code == AssetBundleUpdateCode.UpdateOk)
+        {
+            mIsDownloading = true;
+            mCurrentSize += (uint)assetBundleUpdaterResult.AssetBundle.Size;
         }
         mIsError = assetBundleUpdaterResult.IsError;
     }
@@ -69,6 +84,16 @@ public class AssetBundleLoader : MonoBehaviour
                 AssetBundleManager.CreateLevelLoadTask("AssetBundle/AssetBundleSample/Scene/Test", true);
             }
         }
+        
+        if(mIsDownloading)
+        {
+            float progress = 0;
+            if (mTotalSize > 0)
+            {
+                progress = (float) mCurrentSize / mTotalSize;
+            }
+            GUILayout.Label("download progress: " + progress.ToString("P1"));
+        }
     }
 
     void DestroyGameObject()
@@ -76,6 +101,10 @@ public class AssetBundleLoader : MonoBehaviour
         if (mGameObject != null)
         {
             Destroy(mGameObject);
+        }
+        if (SceneManager.GetSceneByName("Test").isLoaded)
+        {
+            SceneManager.UnloadSceneAsync("Test");
         }
     }
 }
