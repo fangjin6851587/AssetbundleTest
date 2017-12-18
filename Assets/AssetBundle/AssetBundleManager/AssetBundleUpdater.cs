@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -10,9 +9,7 @@ namespace AssetBundles
 {
     public enum AssetBundleUpdateCode
     {
-        Success = 0,
-
-        VersionOk,
+        VersionOk = 1,
         GetBundleListOk,
         UpdateOk,
         UpdateCompleted,
@@ -104,9 +101,32 @@ namespace AssetBundles
             mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
             mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.UpdateCompleted;
             NotificationLastResult();
+#if ENABLE_ASYNC_WAIT
+            AssetBundleInitialize();
+#else
             StartCoroutine(AssetBundleInitialize());
+#endif
         }
 
+#if ENABLE_ASYNC_WAIT
+        private async void AssetBundleInitialize()
+        {
+            AssetBundleManager.BaseDownloadingURL = !DownloadToLocal ? DownloadUrl : string.Empty;
+            AssetBundleManager.IsAssetBundleEncrypted = IsEncrypt;
+            AssetBundleManager.ActiveVariants = mAssetBundleList.AllAssetBundlesWithVariant;
+            AssetBundleManager.IsAssetLoadFromResources =
+                !File.Exists(GetPlatformAssetBundleLocationPath() + "/" + Utility.GetPlatformName());
+
+            var operate = AssetBundleManager.Initialize();
+            if (operate != null)
+            {
+                await operate;
+            }
+            mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
+            mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.AssetBundleInitializeOk;
+            NotificationLastResult();
+        }
+#else
         private IEnumerator AssetBundleInitialize()
         {
             AssetBundleManager.BaseDownloadingURL = !DownloadToLocal ? DownloadUrl : string.Empty;
@@ -125,6 +145,8 @@ namespace AssetBundles
             mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.AssetBundleInitializeOk;
             NotificationLastResult();
         }
+#endif
+
 
         private void CollectUpdateResourceList(byte[] data, string error)
         {
