@@ -117,10 +117,7 @@ namespace AssetBundles
         static AssetBundleManager s_AssetsManager;
         static string[] m_AllAssetBundles = new string[0];
         static string[] m_AllVariants = new string[0];
-
-#if !ENABLE_ASYNC_WAIT && NET_4_6
         static WaitForEndOfFrame s_EndOfFrame = new WaitForEndOfFrame();
-#endif
 
         public static LogMode logMode
         {
