@@ -49,7 +49,6 @@ namespace AssetBundles
         /// <returns>Wrapped Coroutine</returns>
         public static CoroutineWithTask<System.Object> AsCoroutine(this Task task)
         {
-            var coroutine = new WaitUntil(() => task.IsCompleted || task.IsFaulted || task.IsCanceled);
             return new CoroutineWithTask<object>(task);
         }
 
@@ -60,7 +59,6 @@ namespace AssetBundles
         /// <returns>Wrapped Coroutine</returns>
         public static CoroutineWithTask<T> AsCoroutine<T>(this Task<T> task)
         {
-
             return new CoroutineWithTask<T>(task);
         }
 

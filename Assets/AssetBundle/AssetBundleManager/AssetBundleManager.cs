@@ -101,7 +101,7 @@ namespace AssetBundles
         static LogMode m_LogMode = LogMode.All;
         static string m_BaseDownloadingURL = "";
         static string[] m_ActiveVariants = { };
-        static AssetBundleManifest m_AssetBundleManifest = null;
+        static AssetBundleManifest m_AssetBundleManifest;
 
 #if UNITY_EDITOR
         static int m_SimulateAssetBundleInEditor = -1;
@@ -113,11 +113,14 @@ namespace AssetBundles
         static List<string> m_DownloadingBundles = new List<string>();
         static List<AssetBundleLoadOperation> m_InProgressOperations = new List<AssetBundleLoadOperation>();
         static Dictionary<string, string[]> m_Dependencies = new Dictionary<string, string[]>();
-        private static bool m_IsAssetBundleEncrypted;
-        private static AssetBundleManager s_AssetsManager = null;
-        static WaitForEndOfFrame s_EndOfFrame = new WaitForEndOfFrame();
+        static bool m_IsAssetBundleEncrypted;
+        static AssetBundleManager s_AssetsManager;
         static string[] m_AllAssetBundles = new string[0];
         static string[] m_AllVariants = new string[0];
+
+#if !ENABLE_ASYNC_WAIT
+        static WaitForEndOfFrame s_EndOfFrame = new WaitForEndOfFrame();
+#endif
 
         public static LogMode logMode
         {
@@ -785,10 +788,7 @@ namespace AssetBundles
             }
             else
             {
-                if (callback != null)
-                {
-                    callback(null);
-                }
+                callback?.Invoke(null);
             }
         }
 
