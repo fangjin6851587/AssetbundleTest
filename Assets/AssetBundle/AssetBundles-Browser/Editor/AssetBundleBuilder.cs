@@ -17,7 +17,7 @@ namespace AssetBundleBrowser
 
     public class AssetBundleBuilder
     {
-        private static readonly string ASSSETS_STRING = "Assets";
+        private static readonly string ASSETS_STRING = "Assets";
         private readonly Dictionary<string, AssetNode> mAllAssetNodes = new Dictionary<string, AssetNode>();
         private readonly List<string> mBuildMap = new List<string>();
 
@@ -234,7 +234,7 @@ namespace AssetBundleBrowser
             for (int i = 0; i < mDependciesFolder.Count; i++)
             {
                 string path = Application.dataPath + "/" +
-                              mDependciesFolder[i].Path.Substring(ASSSETS_STRING.Length + 1);
+                              mDependciesFolder[i].Path.Substring(ASSETS_STRING.Length + 1);
                 if (!Directory.Exists(path))
                 {
                     Debug.LogError(string.Format("abResourcePath {0} not exist", mDependciesFolder[i].Path));
@@ -269,7 +269,7 @@ namespace AssetBundleBrowser
         {
             for (int i = 0; i < mSingleFolder.Count; i++)
             {
-                string path = Application.dataPath + "/" + mSingleFolder[i].Path.Substring(ASSSETS_STRING.Length + 1);
+                string path = Application.dataPath + "/" + mSingleFolder[i].Path.Substring(ASSETS_STRING.Length + 1);
                 if (!Directory.Exists(path))
                 {
                     Debug.LogError(string.Format("abResourcePath {0} not exist", mSingleFolder[i].Path));
@@ -415,7 +415,7 @@ namespace AssetBundleBrowser
 
         private string GetReleativeToAssets(string fullName)
         {
-            string fileRelativePath = fullName.Substring(Application.dataPath.Length - ASSSETS_STRING.Length);
+            string fileRelativePath = fullName.Substring(Application.dataPath.Length - ASSETS_STRING.Length);
             fileRelativePath = fileRelativePath.Replace("\\", "/");
             return fileRelativePath;
         }
@@ -424,7 +424,7 @@ namespace AssetBundleBrowser
         {
             string outPutDir = CreateVersionDirectory();
             AssetBundleMerge.Pack(
-                Application.dataPath.Substring(0, Application.dataPath.Length - ASSSETS_STRING.Length) +
+                Application.dataPath.Substring(0, Application.dataPath.Length - ASSETS_STRING.Length) +
                 mAbBuildInfo.outputDirectory, Path.Combine(outPutDir, Utility.GetPackPlatfomrName()), bundleList);
             bundleList.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
             File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME,
@@ -449,7 +449,7 @@ namespace AssetBundleBrowser
                     continue;
                 }
 
-                string assetBundleName = path.Substring(ASSSETS_STRING.Length + 1);
+                string assetBundleName = path.Substring(ASSETS_STRING.Length + 1);
                 int extensionIndex = assetBundleName.LastIndexOf(".", StringComparison.Ordinal);
                 assetBundleName = assetBundleName.Substring(0, extensionIndex);
                 assetBundleName = FilterResourceAssetBundle(assetBundleName);
