@@ -16,7 +16,6 @@ namespace AssetBundleBrowser
         [SerializeField]
         private Vector2 mScrollPosition;
 
-        private bool mAllVariant;
         private bool mBundleFolder;
 
         internal class AssetBundleInfoFoldout
@@ -56,20 +55,6 @@ namespace AssetBundleBrowser
                 mScrollPosition = EditorGUILayout.BeginScrollView(mScrollPosition);
                 using (new EditorGUI.DisabledScope(true))
                 {
-                    mAllVariant = EditorGUILayout.Foldout(mAllVariant, "All Variant");
-                    if (mAllVariant)
-                    {
-                        int indent = EditorGUI.indentLevel;
-                        EditorGUI.indentLevel = 1;
-                        int size = mBundleList.AllAssetBundlesWithVariant.Length;
-                        EditorGUILayout.LabelField("Size", size.ToString());
-                        for (int i = 0; i < size; i++)
-                        {
-                            EditorGUILayout.LabelField((i + 1).ToString(), mBundleList.AllAssetBundlesWithVariant[i]);
-                        }
-                        EditorGUI.indentLevel = indent;
-                    }
-
                     mBundleFolder = EditorGUILayout.Foldout(mBundleFolder, "Aasset Bundle List");
                     if (mBundleFolder)
                     {

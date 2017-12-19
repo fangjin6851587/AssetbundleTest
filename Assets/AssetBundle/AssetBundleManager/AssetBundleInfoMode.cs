@@ -111,7 +111,6 @@ namespace AssetBundles
     {
         public const string FILE_NAME = "bundleList.bytes";
         public Dictionary<string, AssetBundleInfo> BundleList;
-        public string[] AllAssetBundlesWithVariant;
 
         public override string GetFileName()
         {
@@ -124,13 +123,11 @@ namespace AssetBundles
             if (bundleList != null)
             {
                 BundleList = bundleList.BundleList;
-                AllAssetBundlesWithVariant = bundleList.AllAssetBundlesWithVariant;
             }
         }
 
         public AssetBundleList(string outPutPath, AssetBundleManifest manifest)
         {
-            AllAssetBundlesWithVariant = manifest.GetAllAssetBundlesWithVariant();
             BundleList = new Dictionary<string, AssetBundleInfo>();
             BundleList.Add(Utility.GetPlatformName(), GetManifestAssetBundleInfo(outPutPath));
             var allAssetBundles = manifest.GetAllAssetBundles();

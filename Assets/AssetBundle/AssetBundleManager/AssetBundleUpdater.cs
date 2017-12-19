@@ -114,7 +114,6 @@ namespace AssetBundles
         {
             AssetBundleManager.BaseDownloadingURL = !DownloadToLocal ? DownloadUrl : string.Empty;
             AssetBundleManager.IsAssetBundleEncrypted = IsEncrypt;
-            AssetBundleManager.ActiveVariants = mAssetBundleList.AllAssetBundlesWithVariant;
             AssetBundleManager.IsAssetLoadFromResources =
                 !File.Exists(GetPlatformAssetBundleLocationPath() + "/" + Utility.GetPlatformName());
 
@@ -132,7 +131,6 @@ namespace AssetBundles
         {
             AssetBundleManager.BaseDownloadingURL = !DownloadToLocal ? DownloadUrl : string.Empty;
             AssetBundleManager.IsAssetBundleEncrypted = IsEncrypt;
-            AssetBundleManager.ActiveVariants = mAssetBundleList.AllAssetBundlesWithVariant;
             AssetBundleManager.IsAssetLoadFromResources =
                 !File.Exists(GetPlatformAssetBundleLocationPath() + "/" + Utility.GetPlatformName());
 
