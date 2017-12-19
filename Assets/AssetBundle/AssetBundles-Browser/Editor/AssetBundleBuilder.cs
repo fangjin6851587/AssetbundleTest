@@ -33,12 +33,13 @@ namespace AssetBundleBrowser
         {
             var info = new DirectoryInfo(sourcePath);
             Directory.CreateDirectory(destinationPath);
-            foreach (FileSystemInfo fsi in info.GetFileSystemInfos())
+            foreach (var fsi in info.GetFileSystemInfos())
             {
-                String destName = Path.Combine(destinationPath, fsi.Name);
-
-                if (fsi is FileInfo)         
+                string destName = Path.Combine(destinationPath, fsi.Name);
+                if (fsi is FileInfo)
+                {
                     File.Copy(fsi.FullName, destName);
+                }
                 else                                   
                 {
                     Directory.CreateDirectory(destName);
