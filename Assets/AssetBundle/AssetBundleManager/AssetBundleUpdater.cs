@@ -100,8 +100,7 @@ namespace AssetBundles
         private void AfterDownloadComplete()
         {
             mIsVersionConfirmed = false;
-            mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-            mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.UpdateCompleted;
+            mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult {Code = AssetBundleUpdateCode.UpdateCompleted};
             NotificationLastResult();
 #if ENABLE_ASYNC_WAIT && NET_4_6
             AssetBundleInitialize();
@@ -124,8 +123,8 @@ namespace AssetBundles
             {
                 await operate;
             }
-            mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-            mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.AssetBundleInitializeOk;
+            mLastAssetBundleUpdaterResult =
+                new AssetBundleUpdaterResult {Code = AssetBundleUpdateCode.AssetBundleInitializeOk};
             NotificationLastResult();
         }
 #else
@@ -143,8 +142,8 @@ namespace AssetBundles
                 yield return StartCoroutine(operate);
             }
 
-            mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-            mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.AssetBundleInitializeOk;
+            mLastAssetBundleUpdaterResult =
+                new AssetBundleUpdaterResult {Code = AssetBundleUpdateCode.AssetBundleInitializeOk};
             NotificationLastResult();
         }
 #endif
@@ -178,13 +177,15 @@ namespace AssetBundles
                 mAssetBundleUpdateInfo.TargetVersion = mTargetVersion;
                 mAssetBundleList = assetBundleList;
                 SaveLocalData();
-                mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-                mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.VersionOk;
+                mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult {Code = AssetBundleUpdateCode.VersionOk};
                 NotificationLastResult();
 
-                mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-                mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.BundleListOk;
-                mLastAssetBundleUpdaterResult.TotalSize = mAssetBundleUpdateInfo.GetPendingListTotalSize();
+                mLastAssetBundleUpdaterResult =
+                    new AssetBundleUpdaterResult
+                    {
+                        Code = AssetBundleUpdateCode.BundleListOk,
+                        TotalSize = mAssetBundleUpdateInfo.GetPendingListTotalSize()
+                    };
                 NotificationLastResult();
             }
             else
@@ -261,9 +262,12 @@ namespace AssetBundles
                     }
 
                     mAssetBundleUpdateInfo.PendingList.Remove(assetBundle.AssetBundleName);
-                    mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-                    mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.Updating;
-                    mLastAssetBundleUpdaterResult.AssetBundle = assetBundle;
+                    mLastAssetBundleUpdaterResult =
+                        new AssetBundleUpdaterResult
+                        {
+                            Code = AssetBundleUpdateCode.Updating,
+                            AssetBundle = assetBundle
+                        };
                     NotificationLastResult();
                 }
             }
@@ -271,19 +275,21 @@ namespace AssetBundles
 
         private void FixedUpdate()
         {
-            if (mIsVersionConfirmed)
+            if (!mIsVersionConfirmed)
             {
-                if (mIsNeedUpdate)
+                return;
+            }
+
+            if (mIsNeedUpdate)
+            {
+                if (mCanDownload)
                 {
-                    if (mCanDownload)
-                    {
-                        StartDownloadAssetBundle();
-                    }
+                    StartDownloadAssetBundle();
                 }
-                else
-                {
-                    AfterDownloadComplete();
-                }
+            }
+            else
+            {
+                AfterDownloadComplete();
             }
         }
 
@@ -349,8 +355,8 @@ namespace AssetBundles
                     }
                     else
                     {
-                        mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-                        mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.NeedDownloadNewApp;
+                        mLastAssetBundleUpdaterResult =
+                            new AssetBundleUpdaterResult {Code = AssetBundleUpdateCode.NeedDownloadNewApp};
                         NotificationLastResult();
                     }
                 }
@@ -388,8 +394,7 @@ namespace AssetBundles
                 mNeedDownloadHttpRangeList = new List<HttpRange>();
                 foreach (var assetBundle in mAssetBundleUpdateInfo.PendingList.Values)
                 {
-                    var httpRange = new HttpRange();
-                    httpRange.id = assetBundle.AssetBundleName;
+                    var httpRange = new HttpRange {id = assetBundle.AssetBundleName};
                     httpRange.SetRange(AsssetBundleOnePackage ? assetBundle.StartOffset : 0, (int) assetBundle.Size);
                     string targetPath = Path.Combine(GetPlatformAssetBundleLocationPath(), assetBundle.AssetBundleName);
                     if (File.Exists(targetPath))
@@ -485,9 +490,11 @@ namespace AssetBundles
             }
             else
             {
-                mAssetBundleUpdateInfo = new AssetBundleUpdateInfo();
-                mAssetBundleUpdateInfo.CurrentVersion = localVersion;
-                mAssetBundleUpdateInfo.TargetVersion = localVersion;
+                mAssetBundleUpdateInfo = new AssetBundleUpdateInfo
+                {
+                    CurrentVersion = localVersion,
+                    TargetVersion = localVersion
+                };
             }
         }
 
@@ -553,8 +560,7 @@ namespace AssetBundles
                 mIsNeedUpdate = false;
                 mCanDownload = false;
 
-                mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-                mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.VersionOk;
+                mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult {Code = AssetBundleUpdateCode.VersionOk};
                 NotificationLastResult();
             }
         }
@@ -604,8 +610,7 @@ namespace AssetBundles
             }
             else
             {
-                mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-                mLastAssetBundleUpdaterResult.Code = AssetBundleUpdateCode.VersionOk;
+                mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult {Code = AssetBundleUpdateCode.VersionOk};
 
                 if (AssetBundleVersionInfo.Compare(mAssetBundleUpdateInfo.TargetVersion,
                         mAssetBundleUpdateInfo.CurrentVersion) == 0)
@@ -630,9 +635,11 @@ namespace AssetBundles
         private void ThrowException(AssetBundleUpdateCode code, string error)
         {
             SaveLocalData();
-            mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult();
-            mLastAssetBundleUpdaterResult.Code = code;
-            mLastAssetBundleUpdaterResult.Message = error;
+            mLastAssetBundleUpdaterResult = new AssetBundleUpdaterResult
+            {
+                Code = code,
+                Message = error
+            };
             NotificationLastResult();
         }
     }
