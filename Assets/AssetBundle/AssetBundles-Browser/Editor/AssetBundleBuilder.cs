@@ -25,9 +25,27 @@ namespace AssetBundleBrowser
         private ABBuildInfo mAbBuildInfo;
 
         private List<BuildFolder> mDependciesFolder;
-        private List<BuildFolder> mSingleFolder;
 
         private AssetBundleVersionInfo mLastVersion;
+        private List<BuildFolder> mSingleFolder;
+
+        private static void CopyDirectory(string sourcePath, string destinationPath)
+        {
+            var info = new DirectoryInfo(sourcePath);
+            Directory.CreateDirectory(destinationPath);
+            foreach (FileSystemInfo fsi in info.GetFileSystemInfos())
+            {
+                String destName = Path.Combine(destinationPath, fsi.Name);
+
+                if (fsi is FileInfo)         
+                    File.Copy(fsi.FullName, destName);
+                else                                   
+                {
+                    Directory.CreateDirectory(destName);
+                    CopyDirectory(fsi.FullName, destName);
+                }
+            }
+        }
 
         public void BuildAssetBundle(ABBuildInfo buildInfo)
         {
@@ -107,6 +125,10 @@ namespace AssetBundleBrowser
             {
                 MergeAssetBundle(assetBundleList);
             }
+            else
+            {
+                CopyDirectory(mAbBuildInfo.outputDirectory, CreateVersionDirectory());
+            }
 
             CheckCopyLocalAssets();
 
@@ -115,27 +137,6 @@ namespace AssetBundleBrowser
                 if (mAbBuildInfo.onBuild != null)
                 {
                     mAbBuildInfo.onBuild(assetBundleName);
-                }
-            }
-        }
-
-        private void CheckCopyLocalAssets()
-        {
-            var localAssetsPath = Application.dataPath + "/Resources/" + Utility.GetLocalAssetsInfo();
-            if (mAbBuildInfo.copyLocalAssets)
-            {
-                if (!Directory.Exists(localAssetsPath))
-                {
-                    Directory.CreateDirectory(localAssetsPath);
-                }
-                File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME, localAssetsPath + "/" + AssetBundleVersionInfo.FILE_NAME, true);
-                File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleList.FILE_NAME, localAssetsPath + "/" + AssetBundleList.FILE_NAME, true);
-            }
-            else
-            {
-                if (Directory.Exists(localAssetsPath))
-                {
-                    Directory.Delete(localAssetsPath, true);
                 }
             }
         }
@@ -173,6 +174,29 @@ namespace AssetBundleBrowser
                 }
 
                 maxDepth -= 1;
+            }
+        }
+
+        private void CheckCopyLocalAssets()
+        {
+            string localAssetsPath = Application.dataPath + "/Resources/" + Utility.GetLocalAssetsInfo();
+            if (mAbBuildInfo.copyLocalAssets)
+            {
+                if (!Directory.Exists(localAssetsPath))
+                {
+                    Directory.CreateDirectory(localAssetsPath);
+                }
+                File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME,
+                    localAssetsPath + "/" + AssetBundleVersionInfo.FILE_NAME, true);
+                File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleList.FILE_NAME,
+                    localAssetsPath + "/" + AssetBundleList.FILE_NAME, true);
+            }
+            else
+            {
+                if (Directory.Exists(localAssetsPath))
+                {
+                    Directory.Delete(localAssetsPath, true);
+                }
             }
         }
 
@@ -270,6 +294,19 @@ namespace AssetBundleBrowser
             }
         }
 
+        private string CreateVersionDirectory()
+        {
+            string outPutDir = mAbBuildInfo.outputDirectory + "_" +
+                               mLastVersion.MarjorVersion + "_" + mLastVersion.MinorVersion;
+
+            if (!Directory.Exists(outPutDir))
+            {
+                Directory.CreateDirectory(outPutDir);
+            }
+
+            return outPutDir;
+        }
+
         private void EncryptAssetBundle(AssetBundleManifest manifest)
         {
             foreach (string assetBundle in manifest.GetAllAssetBundles())
@@ -291,6 +328,16 @@ namespace AssetBundleBrowser
                 fs.Write(buffer, 0, buffer.Length);
                 fs.SetLength(buffer.Length);
             }
+        }
+
+        private string FilterResourceAssetBundle(string assetBundle)
+        {
+            int resourceIndex = assetBundle.IndexOf("Resources/", StringComparison.Ordinal);
+            if (resourceIndex >= 0)
+            {
+                assetBundle = assetBundle.Substring(resourceIndex);
+            }
+            return assetBundle;
         }
 
         private AssetBundleList GenerateAssetBundleList(AssetBundleManifest manifest)
@@ -374,17 +421,15 @@ namespace AssetBundleBrowser
 
         private void MergeAssetBundle(AssetBundleList bundleList)
         {
-            string outPutDir = mAbBuildInfo.outputDirectory + "_" +
-                               mLastVersion.MarjorVersion + "_" + mLastVersion.MinorVersion;
-
-            if (!Directory.Exists(outPutDir))
-            {
-                Directory.CreateDirectory(outPutDir);
-            }
-            AssetBundleMerge.Pack(Application.dataPath.Substring(0, Application.dataPath.Length - ASSSETS_STRING.Length) + mAbBuildInfo.outputDirectory, Path.Combine(outPutDir, Utility.GetPackPlatfomrName()), bundleList);
+            string outPutDir = CreateVersionDirectory();
+            AssetBundleMerge.Pack(
+                Application.dataPath.Substring(0, Application.dataPath.Length - ASSSETS_STRING.Length) +
+                mAbBuildInfo.outputDirectory, Path.Combine(outPutDir, Utility.GetPackPlatfomrName()), bundleList);
             bundleList.Save(mAbBuildInfo.outputDirectory, mAbBuildInfo.isEncrypt);
-            File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME, outPutDir + "/" + AssetBundleVersionInfo.FILE_NAME, true);
-            File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleList.FILE_NAME, outPutDir + "/" + AssetBundleList.FILE_NAME, true);
+            File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleVersionInfo.FILE_NAME,
+                outPutDir + "/" + AssetBundleVersionInfo.FILE_NAME, true);
+            File.Copy(mAbBuildInfo.outputDirectory + "/" + AssetBundleList.FILE_NAME,
+                outPutDir + "/" + AssetBundleList.FILE_NAME, true);
         }
 
         private void SetAssetBundleNames()
@@ -428,16 +473,6 @@ namespace AssetBundleBrowser
                     assetImporter.SetAssetBundleNameAndVariant(assetBundleName, string.Empty);
                 }
             }
-        }
-
-        private string FilterResourceAssetBundle(string assetBundle)
-        {
-            int resourceIndex = assetBundle.IndexOf("Resources/", StringComparison.Ordinal);
-            if (resourceIndex >= 0)
-            {
-                assetBundle = assetBundle.Substring(resourceIndex);
-            }
-            return assetBundle;
         }
 
         private bool ShouldIgnoreFile(string path)
