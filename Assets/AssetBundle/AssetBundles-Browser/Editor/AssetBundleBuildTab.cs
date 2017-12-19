@@ -240,13 +240,11 @@ namespace AssetBundleBrowser
                                 buildFolder.AssetBundleName = buildFolder.AssetBundleName.Substring(resourceIndex);
                             }
                         }
-                        EditorGUILayout.LabelField("AssetBundle Name:", buildFolder.AssetBundleName);
                     }
                     else
                     {
                         buildFolder.AssetBundleName = string.Empty;
                     }
-                    buildFolder.VariantType = EditorGUILayout.TextField("AssetBundle Variant", buildFolder.VariantType);
                     if (GUILayout.Button("-", GUILayout.MaxWidth(30)))
                     {
                         removeIndex = buildFolderIndex - 1;
