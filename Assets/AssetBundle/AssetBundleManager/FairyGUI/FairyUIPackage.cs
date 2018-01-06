@@ -1,21 +1,40 @@
-﻿
-using System.Collections;
+﻿using System.Collections;
 using AssetBundles;
 using FairyGUI;
+#if UNITY_EDITOR
+using UnityEngine;
+#endif
 
 namespace AssetBundles
 {
     public class FairyUIPackage
     {
+#if UNITY_EDITOR
+        private float mStartLoadTime;
+        private string mDescFilePath;
+#endif
+
         private readonly System.Action OnAddPackageCallback;
 
-        public FairyUIPackage(string descFilePath, System.Action onAddPackageCallback)
+        private FairyUIPackage(string descFilePath, System.Action onAddPackageCallback)
         {
+
+#if UNITY_EDITOR
+            mStartLoadTime = Time.realtimeSinceStartup;
+            mDescFilePath = descFilePath;
+#endif
+
             OnAddPackageCallback = onAddPackageCallback;
-            string assetBundleName = AssetBundleManager.GetAssetBundleName("Resources/" + descFilePath, true);
-            if (string.IsNullOrEmpty(assetBundleName))
+            string assetBundleName = AssetBundleManager.GetAssetBundleName("Resources/" + descFilePath);
+            if (string.IsNullOrEmpty(assetBundleName) || AssetBundleManager.SimulateAssetBundleInEditor)
             {
                 UIPackage.AddPackage(descFilePath);
+
+#if UNITY_EDITOR
+                float t = Time.realtimeSinceStartup - mStartLoadTime;
+                Debug.Log("[FairyUIPackage] Fairy ui package at " + mDescFilePath + " added. [t=" + t + "]");
+#endif
+
                 if (OnAddPackageCallback != null)
                 {
                     OnAddPackageCallback();
@@ -41,11 +60,22 @@ namespace AssetBundles
             if (assetBundle != null)
             {
                 UIPackage.AddPackage(assetBundle);
+#if UNITY_EDITOR
+                float t = Time.realtimeSinceStartup - mStartLoadTime;
+                Debug.Log("[FairyUIPackage] Fairy ui package at " + mDescFilePath + " added. [t=" + t + "]");
+#endif
+
                 if (OnAddPackageCallback != null)
                 {
                     OnAddPackageCallback();
                 }
             }
+#if UNITY_EDITOR
+            else
+            {
+                Debug.LogWarning("[FairyUIPackage] Fairy ui package at " + mDescFilePath + " could not be added !!!");
+            }
+#endif
         }
 
         /// <summary>

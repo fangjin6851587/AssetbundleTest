@@ -878,17 +878,14 @@ namespace AssetBundles
 #endif
 
 
-        internal static string GetAssetBundleName(string path, bool forceIgnoreEditor = false)
+        internal static string GetAssetBundleName(string path)
         {
-            if (!forceIgnoreEditor)
-            {
 #if UNITY_EDITOR
-                if (SimulateAssetBundleInEditor)
-                {
-                    m_AllAssetBundles = AssetDatabase.GetAllAssetBundleNames();
-                }
-#endif
+            if (SimulateAssetBundleInEditor)
+            {
+                m_AllAssetBundles = AssetDatabase.GetAllAssetBundleNames();
             }
+#endif
 
             path = path.ToLower();
             return m_AllAssetBundles.FirstOrDefault(assetBundle => path.StartsWith(assetBundle));
@@ -967,8 +964,6 @@ namespace AssetBundles
 
         public static GetAssetBundleOperation LoadAssetBundleAsync(string assetBundleName)
         {
-            Log(LogType.Info, "Loading " + assetBundleName + " bundle");
-
             GetAssetBundleOperation operation;
 
             if (m_AssetBundleManifest == null)
