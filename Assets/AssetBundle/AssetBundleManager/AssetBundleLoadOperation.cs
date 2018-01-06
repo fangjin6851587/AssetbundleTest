@@ -611,6 +611,40 @@ namespace AssetBundles
         }
     }
 
+    public class GetAssetBundleOperation : AssetBundleLoadOperation
+    {
+        protected readonly string m_AssetBundleName;
+        protected string m_DownloadingError;
+        protected LoadedAssetBundle m_loadedAssetBundle;
+
+        public AssetBundle GetAssetBundle()
+        {
+            return m_loadedAssetBundle != null ? m_loadedAssetBundle.m_AssetBundle : null;
+        }
+
+        public GetAssetBundleOperation(string assetBundleName)
+        {
+            m_AssetBundleName = assetBundleName;
+        }
+
+        public override bool Update()
+        {
+            m_loadedAssetBundle = AssetBundleManager.GetLoadedAssetBundle(m_AssetBundleName, out m_DownloadingError);
+            return m_loadedAssetBundle == null;
+        }
+
+        public override bool IsDone()
+        {
+            if (m_loadedAssetBundle != null || m_DownloadingError == null)
+            {
+                return m_loadedAssetBundle != null;
+            }
+
+            Debug.LogError(m_DownloadingError);
+            return true;
+        }
+    }
+
     public class ResourceLoadAssetOperationFull : AssetBundleLoadAssetOperation
     {
         protected string m_AssetPath;

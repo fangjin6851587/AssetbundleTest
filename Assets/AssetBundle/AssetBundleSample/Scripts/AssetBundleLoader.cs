@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 
 public class AssetBundleLoader : MonoBehaviour
 {
-
+    public GameObject FairyGUI;
     public AssetBundleUpdater Updater;
     private bool mIsError;
     private bool mInited;
@@ -83,6 +83,12 @@ public class AssetBundleLoader : MonoBehaviour
                 DestroyGameObject();
                 AssetBundleManager.CreateLevelLoadTask("AssetBundle/AssetBundleSample/Scene/Test", true);
             }
+
+            if (GUI.Button(new Rect(50, 305, 200, 80), "Fairy GUI"))
+            {
+                DestroyGameObject();
+                FairyGUI.SetActive(true);
+            }
         }
         
         if(mIsDownloading)
@@ -98,6 +104,7 @@ public class AssetBundleLoader : MonoBehaviour
 
     void DestroyGameObject()
     {
+        FairyGUI.SetActive(false);
         if (mGameObject != null)
         {
             Destroy(mGameObject);

@@ -459,10 +459,17 @@ namespace AssetBundleBrowser
                 {
                     if (buildFolder.SingleAssetBundle)
                     {
-                        assetImporter.SetAssetBundleNameAndVariant(
-                            string.IsNullOrEmpty(buildFolder.AssetBundleName)
-                                ? assetBundleName
-                                : buildFolder.AssetBundleName, buildFolder.VariantType);
+                        if (buildFolder.IsFairyGUIFolder)
+                        {
+                            assetImporter.SetAssetBundleNameAndVariant(assetBundleName.Split('@')[0], string.Empty);
+                        }
+                        else
+                        {
+                            assetImporter.SetAssetBundleNameAndVariant(
+                                string.IsNullOrEmpty(buildFolder.AssetBundleName)
+                                    ? assetBundleName
+                                    : buildFolder.AssetBundleName, buildFolder.VariantType);
+                        }
                     }
                     else
                     {

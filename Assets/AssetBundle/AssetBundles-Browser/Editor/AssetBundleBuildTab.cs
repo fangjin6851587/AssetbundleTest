@@ -228,7 +228,8 @@ namespace AssetBundleBrowser
                 {
                     GUILayout.BeginHorizontal();
                     EditorGUILayout.LabelField(buildFolderIndex.ToString(), buildFolder.Path);
-                    buildFolder.SingleAssetBundle = GUILayout.Toggle(buildFolder.SingleAssetBundle, "Single AssetBundle");
+                    buildFolder.IsFairyGUIFolder = GUILayout.Toggle(buildFolder.IsFairyGUIFolder, "Fairy GUI");
+                    buildFolder.SingleAssetBundle = buildFolder.IsFairyGUIFolder || GUILayout.Toggle(buildFolder.SingleAssetBundle, "Single AssetBundle");
                     if (buildFolder.SingleAssetBundle)
                     {
                         if (string.IsNullOrEmpty(buildFolder.AssetBundleName))
@@ -245,6 +246,7 @@ namespace AssetBundleBrowser
                     {
                         buildFolder.AssetBundleName = string.Empty;
                     }
+
                     if (GUILayout.Button("-", GUILayout.MaxWidth(30)))
                     {
                         removeIndex = buildFolderIndex - 1;

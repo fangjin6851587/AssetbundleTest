@@ -878,18 +878,21 @@ namespace AssetBundles
 #endif
 
 
-        static string GetAssetBundleName(string path)
+        internal static string GetAssetBundleName(string path, bool forceIgnoreEditor = false)
         {
-#if UNITY_EDITOR
-            if (SimulateAssetBundleInEditor)
+            if (!forceIgnoreEditor)
             {
-                m_AllAssetBundles = AssetDatabase.GetAllAssetBundleNames();
-            }
+#if UNITY_EDITOR
+                if (SimulateAssetBundleInEditor)
+                {
+                    m_AllAssetBundles = AssetDatabase.GetAllAssetBundleNames();
+                }
 #endif
+            }
+
             path = path.ToLower();
             return m_AllAssetBundles.FirstOrDefault(assetBundle => path.StartsWith(assetBundle));
         }
-
 
         /// <summary>
         /// Starts a load operation for an asset from the given asset bundle.
@@ -958,6 +961,29 @@ namespace AssetBundles
 
                 m_InProgressOperations.Add(operation);
             }
+
+            return operation;
+        }
+
+        public static GetAssetBundleOperation LoadAssetBundleAsync(string assetBundleName)
+        {
+            Log(LogType.Info, "Loading " + assetBundleName + " bundle");
+
+            GetAssetBundleOperation operation;
+
+            if (m_AssetBundleManifest == null)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrEmpty(assetBundleName))
+            {
+                assetBundleName = RemapVariantName(assetBundleName);
+                LoadAssetBundle(assetBundleName);
+            }
+            operation = new GetAssetBundleOperation(assetBundleName);
+
+            m_InProgressOperations.Add(operation);
 
             return operation;
         }

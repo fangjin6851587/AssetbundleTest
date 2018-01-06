@@ -11,6 +11,7 @@ namespace AssetBundleBrowser.AssetBundleDataSource
         public string AssetBundleName;
         public bool SingleAssetBundle;
         public string VariantType;
+        public bool IsFairyGUIFolder;
     }
 
 
